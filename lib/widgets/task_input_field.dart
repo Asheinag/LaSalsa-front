@@ -32,14 +32,14 @@ class TaskInputField extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           InkWell(
-            // Используем InkWell для обработки нажатия на текст
+            key: const Key(
+              'taskInput.calendar',
+            ), // ← добавим ключ для стабильных тестов
             onTap: onSelectDate,
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: selectedDate == null
-                  ? const Icon(
-                      Icons.calendar_today,
-                    ) // Показываем иконку, если дата не выбрана
+                  ? const Icon(Icons.calendar_today)
                   : Text(
                       DateFormat('yyyy-MM-dd').format(selectedDate!),
                       style: const TextStyle(fontWeight: FontWeight.bold),

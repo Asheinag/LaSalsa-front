@@ -1,8 +1,8 @@
-import 'package:flutter/cupertino.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/task.dart';
-import 'auth_intercerptor.dart';
-import 'package:dio/dio.dart';
+import 'auth_interceptor.dart';
 
 class TaskApi {
   final Dio _dio;
