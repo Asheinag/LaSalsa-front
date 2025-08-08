@@ -3,9 +3,8 @@ class Task {
   final String name;
   final String description;
   final String status;
-  final DateTime? plannedAt; 
-  final DateTime? closedAt; 
-
+  final DateTime? plannedAt;
+  final DateTime? closedAt;
 
   Task({
     required this.id,
@@ -14,8 +13,6 @@ class Task {
     required this.status,
     this.plannedAt,
     this.closedAt,
-
-    
   });
 
   Task copyWith({
@@ -24,6 +21,7 @@ class Task {
     String? description,
     String? status,
     DateTime? plannedAt,
+    DateTime? closedAt,
   }) {
     return Task(
       id: id ?? this.id,
@@ -31,6 +29,7 @@ class Task {
       description: description ?? this.description,
       status: status ?? this.status,
       plannedAt: plannedAt ?? this.plannedAt,
+      closedAt: closedAt ?? this.closedAt,
     );
   }
 
@@ -41,15 +40,14 @@ class Task {
       description: json['description'] ?? '',
       status: json['status'] ?? 'TODO',
       plannedAt: json['planned_at'] != null
-        ?DateTime.parse(json['planned_at'])
-        : null,
+          ? DateTime.parse(json['planned_at'])
+          : null,
       closedAt: json['closed_at'] != null
-        ? DateTime.parse(json['closed_at'])
-        : null,
+          ? DateTime.parse(json['closed_at'])
+          : null,
     );
-
-    
   }
+
   Map<String, dynamic> toJson() {
     return {
       'name': name,
@@ -58,8 +56,5 @@ class Task {
       // Если дата не null, преобразуем ее в строку нужного формата
       'planned_at': plannedAt?.toIso8601String(),
     };
-    // Заметьте, я не включаю 'id', так как обычно при создании новой
-    // задачи ID присваивается сервером. Если ваш сервер ожидает ID,
-    // то его тоже нужно добавить.
   }
 }
