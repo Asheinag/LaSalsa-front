@@ -2,12 +2,13 @@ import 'package:dio/dio.dart';
 
 import '../models/task.dart';
 import '../utils/logger.dart';
+import '../config.dart';
 import 'auth_interceptor.dart';
 
 class TaskApi {
   final Dio _dio;
 
-  static const String _url = 'http://localhost:8000/tasks';
+  static final String _url = '$apiBaseUrl/tasks';
 
   TaskApi() : _dio = Dio(BaseOptions(baseUrl: _url)) {
     // Вот где происходит магия: мы добавляем наш перехватчик
