@@ -5,6 +5,7 @@ import '../models/task.dart';
 import '../widgets/active_task_list.dart';
 import '../widgets/completed_task_list.dart';
 import '../widgets/task_input_field.dart';
+import '../utils/logger.dart';
 
 class TaskListScreen extends StatefulWidget {
   final TaskApi taskApi;
@@ -35,7 +36,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
         doneTasks = result.where((t) => t.status == 'DONE').toList();
       });
     } catch (e) {
-      debugPrint('Ошибка загрузки задач: $e');
+      logger.e('Ошибка загрузки задач');
     }
   }
 
@@ -85,7 +86,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
         _plannedDate = null;
       });
     } catch (e) {
-      debugPrint('Ошибка добавления задачи: $e');
+      logger.e('Ошибка добавления задачи');
     }
   }
 
@@ -147,7 +148,31 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
     // Если SnackBar закрылся не из-за действия "Отменить", отправляем изменения на бэк
     if (reason != SnackBarClosedReason.action) {
-      widget.taskApi.setTaskStatus(task.id, newStatus);
+      try {
+        await widget.taskApi.setTaskStatus(task.id, newStatus);
+      } catch (e) {
+        logger.e('Не удалось обновить статус задачи');
+        if (originalIndex != null && originalTask != null) {
+          setState(() {
+            if (newStatus == 'DONE') {
+              doneTasks.removeWhere((t) => t.id == task.id);
+              activeTasks.insert(
+                originalIndex!,
+                originalTask!.copyWith(status: previousStatus),
+              );
+            } else {
+              activeTasks.removeWhere((t) => t.id == task.id);
+              doneTasks.insert(
+                originalIndex!,
+                originalTask!.copyWith(status: previousStatus),
+              );
+            }
+          });
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ошибка обновления задачи')),
+        );
+      }
     }
   }
 
@@ -159,9 +184,18 @@ class _TaskListScreenState extends State<TaskListScreen> {
     });
   }
 
-  void _dismissTask(int index) {
-    widget.taskApi.deleteTask(activeTasks[index].id);
+  void _dismissTask(int index) async {
+    final removedTask = activeTasks[index];
     setState(() => activeTasks.removeAt(index));
+    try {
+      await widget.taskApi.deleteTask(removedTask.id);
+    } catch (e) {
+      logger.e('Ошибка при удалении задачи');
+      setState(() => activeTasks.insert(index, removedTask));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось удалить задачу')),
+      );
+    }
   }
 
   @override

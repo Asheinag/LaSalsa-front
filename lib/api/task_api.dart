@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 
 import '../models/task.dart';
+import '../utils/logger.dart';
 import 'auth_interceptor.dart';
 
 class TaskApi {
@@ -26,8 +26,7 @@ class TaskApi {
       return jsonData.map((taskJson) => Task.fromJson(taskJson)).toList();
     } on DioException catch (e) {
       // Если сервер вернул ошибку (4xx, 5xx), мы попадем сюда
-      debugPrint('Ошибка Dio при загрузке задач: ${e.response?.statusCode}');
-      debugPrint('Сообщение от сервера: ${e.response?.data}');
+      logger.e('Ошибка Dio при загрузке задач: ${e.response?.statusCode}');
 
       // Мы можем обработать ошибку или выбросить свое, более понятное исключение
       throw Exception('Не удалось загрузить задачи.');
@@ -49,7 +48,8 @@ class TaskApi {
     try {
       await _dio.patch('/status', data: {'status': taskStatus, 'id': taskId});
     } on DioException catch (e) {
-      debugPrint('Не удалось обновить задачу ${e.response?.statusCode}');
+      logger.e('Не удалось обновить задачу: ${e.response?.statusCode}');
+      throw Exception('Не удалось обновить задачу.');
     }
   }
 
@@ -57,7 +57,7 @@ class TaskApi {
     try {
       await _dio.delete('/', data: {'id': taskId});
     } on DioException catch (e) {
-      debugPrint('Ошибка при удалении задачи: ${e.response?.statusCode}');
+      logger.e('Ошибка при удалении задачи: ${e.response?.statusCode}');
       throw Exception('Не удалось удалить задачу.');
     }
   }
@@ -68,10 +68,10 @@ class TaskApi {
         '/$taskId/update',
         data: updatedTask.toJson(),
       );
-      debugPrint('Обновленная таска по id=$taskId - $updatedTask');
+      logger.d('Обновлена задача $taskId');
       return Task.fromJson(response.data);
     } on DioException catch (e) {
-      debugPrint('Не удалось обновить задачу ${e.response?.statusCode}');
+      logger.e('Не удалось обновить задачу: ${e.response?.statusCode}');
       throw Exception('Не удалось удалить задачу.');
     }
   }
