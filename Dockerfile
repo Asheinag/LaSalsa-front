@@ -1,6 +1,7 @@
-FROM ghcr.io/cirruslabs/flutter:3.22.2 AS build
+FROM ghcr.io/cirruslabs/flutter:stable AS build
 WORKDIR /app
-
+# Проверка версий
+RUN flutter --version && dart --version
 # Аргументы/переменные для --dart-define
 ARG API_BASE_URL
 ARG FIREBASE_API_KEY
