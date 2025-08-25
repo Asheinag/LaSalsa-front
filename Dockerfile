@@ -20,7 +20,7 @@ COPY . .
 RUN flutter pub get
 
 # Сборка web (canvaskit обычно стабильнее для сложной графики; можешь убрать флаг)
-RUN flutter build web --release --web-renderer canvaskit \
+RUN flutter build web --release \
   --dart-define=API_BASE_URL=${API_BASE_URL} \
   --dart-define=FIREBASE_API_KEY=${FIREBASE_API_KEY} \
   --dart-define=FIREBASE_AUTH_DOMAIN=${FIREBASE_AUTH_DOMAIN} \
