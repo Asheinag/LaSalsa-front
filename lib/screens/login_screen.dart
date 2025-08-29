@@ -56,38 +56,54 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Вход')),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-              textInputAction: TextInputAction.next,
-              onSubmitted: (_) {
-                // Передаем фокус на поле пароля
-                FocusScope.of(context).requestFocus(_passwordFocusNode);
-              },
+      // appBar: AppBar(title: const Text('Вход')),
+      body: Center(
+        // 👈 чтобы всё по центру экрана
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400), // 👈 максимум 400px
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  height: 350,
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                  textInputAction: TextInputAction.next,
+                  onSubmitted: (_) {
+                    FocusScope.of(context).requestFocus(_passwordFocusNode);
+                  },
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _passwordController,
+                  focusNode: _passwordFocusNode,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Пароль'),
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => signIn(),
+                ),
+                const SizedBox(height: 20),
+                TextButton(
+                  onPressed: signIn,
+                  child: const Text('Войти')
+                ),
+                Text('или'),
+                TextButton(
+                  onPressed: signUp,
+                  child: const Text('Зарегистрироваться'),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _passwordController,
-              focusNode: _passwordFocusNode,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Пароль'),
-              // Меняем иконку Enter на "Готово"
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => signIn(), // Более короткая запись
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(onPressed: signIn, child: const Text('Войти')),
-            TextButton(
-              onPressed: signUp,
-              child: const Text('Зарегистрироваться'),
-            ),
-          ],
+          ),
         ),
       ),
     );
