@@ -35,7 +35,7 @@ class TaskApi {
   }
 
   Future<Task> addTask(Task task) async {
-    final response = await _dio.post('/', data: task.toJson());
+    final response = await _dio.post('', data: task.toJson());
     return Task.fromJson(response.data);
   }
 
