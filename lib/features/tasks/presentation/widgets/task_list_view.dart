@@ -117,7 +117,8 @@ class _TaskListViewState extends State<TaskListView> {
                 : TaskListBase(
                     tasks: _tasks,
                     onTaskStatusChanged: _handleStatusUpdate,
-                    emptyListMessage: widget.emptyListMessage, // Используем переданное сообщение
+                    emptyListMessage: widget
+                        .emptyListMessage, // Используем переданное сообщение
                   ),
           ),
           QuickAddTaskBar(onTaskSubmitted: _handleAddTask),

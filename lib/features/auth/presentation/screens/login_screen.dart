@@ -92,10 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   onSubmitted: (_) => signIn(),
                 ),
                 const SizedBox(height: 20),
-                TextButton(
-                  onPressed: signIn,
-                  child: const Text('Войти')
-                ),
+                TextButton(onPressed: signIn, child: const Text('Войти')),
                 Text('или'),
                 TextButton(
                   onPressed: signUp,

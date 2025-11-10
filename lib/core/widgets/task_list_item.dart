@@ -8,8 +8,7 @@ class TaskListItem extends StatelessWidget {
     super.key,
     required this.task,
     required this.onStatusChanged,
-
-    });
+  });
 
   @override
   Widget build(BuildContext context) {

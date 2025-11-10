@@ -4,10 +4,7 @@ class QuickAddTaskBar extends StatefulWidget {
   // Callback-функция, которая "отдаст наверх" имя новой задачи
   final Function(String taskName) onTaskSubmitted;
 
-  const QuickAddTaskBar({
-    super.key,
-    required this.onTaskSubmitted,
-  });
+  const QuickAddTaskBar({super.key, required this.onTaskSubmitted});
 
   @override
   State<QuickAddTaskBar> createState() => _QuickAddTaskBarState();

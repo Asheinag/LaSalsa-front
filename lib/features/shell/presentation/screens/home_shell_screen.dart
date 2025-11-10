@@ -30,20 +30,15 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       body: Row(
         children: [
           // Левая колонка: наш сайдбар
-          AppSidebar(
-            onScreenSelected: _selectScreen
-          ),
+          AppSidebar(onScreenSelected: _selectScreen),
 
           // Разделитель вертикальный
-          const VerticalDivider( 
-            width: 1,
-            thickness: 1,
-          ), 
-          
+          const VerticalDivider(width: 1, thickness: 1),
+
           // Правая колонка: активная рабочая область, которая будет изменяться
-          Expanded( 
+          Expanded(
             child: _currentScreen, // <--  Здесь отображается активный экран
-          ), 
+          ),
         ],
       ),
     );

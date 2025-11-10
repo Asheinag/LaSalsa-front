@@ -112,11 +112,10 @@ void main() {
           '/tasks', // Проверяем, что URL был сформирован правильно
           data: {
             'name': 'New Task',
-            'description': ''
+            'description': '',
           }, // Проверяем, что в теле запроса были отправлены правильные данные
         ),
       ).called(1);
-
     });
 
     test('updateTaskStatus should update and return updated task', () async {

@@ -15,7 +15,10 @@ class TaskService {
   }
 
   // Получаем список задач на сегодня
-  Future<List<Task>> getTodayTasks({required String offset,required String limit}) async {
+  Future<List<Task>> getTodayTasks({
+    required String offset,
+    required String limit,
+  }) async {
     await Future.delayed(const Duration(seconds: 1));
     try {
       final response = await _dio.get(
@@ -32,16 +35,16 @@ class TaskService {
   }
 
   // Отправляем изменение статуса задачи
-  Future<Task> updateTaskStatus({required String taskId, required String taskStatus}) async {
+  Future<Task> updateTaskStatus({
+    required String taskId,
+    required String taskStatus,
+  }) async {
     try {
       final response = await _dio.patch(
         '/tasks/status',
-        data: {
-          'id': taskId,
-          'status': taskStatus,
-        },);
-        return Task.fromJson(response.data);
-        
+        data: {'id': taskId, 'status': taskStatus},
+      );
+      return Task.fromJson(response.data);
     } on DioException catch (e) {
       logger.e(
         'Ошибка Dio при обновлении статуса задачи: ${e.response?.statusCode}',
@@ -50,38 +53,32 @@ class TaskService {
     }
   }
 
-  Future<List<Task>> getTasks({required String offset, required String limit}) async {
+  Future<List<Task>> getTasks({
+    required String offset,
+    required String limit,
+  }) async {
     await Future.delayed(const Duration(seconds: 1));
     try {
-      final response = await _dio.get(
-        '/tasks/?offset=$offset&limit=$limit',
-      );
+      final response = await _dio.get('/tasks/?offset=$offset&limit=$limit');
       final List<dynamic> jsonData = response.data;
 
       return jsonData.map((taskJson) => Task.fromJson(taskJson)).toList();
     } on DioException catch (e) {
-      logger.e(
-        'Ошибка Dio при загрузке задач: ${e.response?.statusCode}',
-      );
+      logger.e('Ошибка Dio при загрузке задач: ${e.response?.statusCode}');
       throw Exception('Не удалось загрузить задачи.');
     }
   }
-  
+
   // Создаем новую задачу
   Future<Task> createTask({required String taskName}) async {
     try {
       final response = await _dio.post(
         '/tasks',
-        data: {
-          'name': taskName,
-          'description': '',
-        },
+        data: {'name': taskName, 'description': ''},
       );
       return Task.fromJson(response.data);
     } on DioException catch (e) {
-      logger.e(
-        'Ошибка Dio при создании задачи: ${e.response?.statusCode}',
-      );
+      logger.e('Ошибка Dio при создании задачи: ${e.response?.statusCode}');
       throw Exception('Не удалось создать задачу.');
     }
   }

@@ -54,7 +54,7 @@ class Task {
           ? DateTime.parse(json['closed_at'])
           : null,
       projectId: json['project_id']?.toString(),
-      parentId: json['parent_id']?.toString()
+      parentId: json['parent_id']?.toString(),
     );
   }
 
@@ -65,8 +65,8 @@ class Task {
       'status': status,
       // Если дата не null, преобразуем ее в строку нужного формата
       'planned_at': plannedAt?.toIso8601String(),
-      if (projectId != null ) 'project_id': projectId,
-      if (parentId != null ) 'parent_id': parentId,
+      if (projectId != null) 'project_id': projectId,
+      if (parentId != null) 'parent_id': parentId,
     };
   }
 }

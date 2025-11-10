@@ -11,9 +11,7 @@ class ChainsScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: const Center(
-        child: Text('Здесь будет граф всех связаных задач'),
-      ),
+      body: const Center(child: Text('Здесь будет граф всех связаных задач')),
     );
   }
 }

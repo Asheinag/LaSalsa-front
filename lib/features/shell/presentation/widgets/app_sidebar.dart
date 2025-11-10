@@ -21,7 +21,7 @@ class AppSidebar extends StatelessWidget {
           children: <Widget>[
             // "Шапка" сайдбара
             const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blue), 
+              decoration: BoxDecoration(color: Colors.blue),
               child: Text(
                 'Меню',
                 style: TextStyle(color: Colors.white, fontSize: 24),

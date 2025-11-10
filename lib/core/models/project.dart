@@ -15,7 +15,6 @@ class Project {
     this.parentId,
     this.updatedAt,
     this.deadline,
-
   });
 
   Project copyWith({
