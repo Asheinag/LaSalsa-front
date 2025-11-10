@@ -5,6 +5,8 @@ class Task {
   final String status;
   final DateTime? plannedAt;
   final DateTime? closedAt;
+  final String? projectId;
+  final String? parentId;
 
   Task({
     required this.id,
@@ -13,6 +15,8 @@ class Task {
     required this.status,
     this.plannedAt,
     this.closedAt,
+    this.projectId,
+    this.parentId,
   });
 
   Task copyWith({
@@ -22,6 +26,8 @@ class Task {
     String? status,
     DateTime? plannedAt,
     DateTime? closedAt,
+    String? projectId,
+    String? parentId,
   }) {
     return Task(
       id: id ?? this.id,
@@ -30,6 +36,8 @@ class Task {
       status: status ?? this.status,
       plannedAt: plannedAt ?? this.plannedAt,
       closedAt: closedAt ?? this.closedAt,
+      projectId: projectId ?? this.projectId,
+      parentId: parentId ?? this.parentId,
     );
   }
 
@@ -45,6 +53,8 @@ class Task {
       closedAt: json['closed_at'] != null
           ? DateTime.parse(json['closed_at'])
           : null,
+      projectId: json['project_id']?.toString(),
+      parentId: json['parent_id']?.toString()
     );
   }
 
@@ -55,6 +65,8 @@ class Task {
       'status': status,
       // Если дата не null, преобразуем ее в строку нужного формата
       'planned_at': plannedAt?.toIso8601String(),
+      if (projectId != null ) 'project_id': projectId,
+      if (parentId != null ) 'parent_id': parentId,
     };
   }
 }

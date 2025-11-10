@@ -1,16 +1,13 @@
-import "package:firebase_auth/firebase_auth.dart";
-import "package:flutter/material.dart";
-import "package:kabachok_lasalsa_front/screens/task_list_screen.dart";
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:kabachok_lasalsa_front/features/shell/presentation/screens/home_shell_screen.dart';
+import 'package:kabachok_lasalsa_front/features/auth/presentation/screens/login_screen.dart';
 
-import 'api/task_api.dart';    
-import 'screens/login_screen.dart';
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
   @override
   Widget build(BuildContext context) {
-
-    final taskApiService = TaskApi();
 
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
@@ -19,7 +16,7 @@ class AuthGate extends StatelessWidget {
         if (!snapshot.hasData) {
           return const LoginScreen();
         }
-        return TaskListScreen(taskApi: taskApiService);
+        return HomeShellScreen();
       },
     );
   }
