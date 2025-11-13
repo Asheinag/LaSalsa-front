@@ -9,10 +9,7 @@ class ProjectDetailsScreen extends StatelessWidget {
   final Project project;
   final TaskService _taskService = TaskService(); // Создаем экземпляр сервиса
 
-  ProjectDetailsScreen({
-    super.key,
-    required this.project,
-  });
+  ProjectDetailsScreen({super.key, required this.project});
 
   @override
   Widget build(BuildContext context) {

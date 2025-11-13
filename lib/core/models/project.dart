@@ -8,7 +8,6 @@ class Project {
   final DateTime? updatedAt;
   final DateTime? deadline;
 
-
   Project({
     required this.id,
     required this.name,
@@ -29,7 +28,6 @@ class Project {
     String? type,
     DateTime? updatedAt,
     DateTime? deadline,
-
   }) {
     return Project(
       id: id ?? this.id,

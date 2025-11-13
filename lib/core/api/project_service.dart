@@ -33,10 +33,7 @@ class ProjectService {
   // Создаем новый проект
   Future<Project> createProject({required String name}) async {
     try {
-      final response = await _dio.post(
-        '/',
-        data: {'name': name},
-      );
+      final response = await _dio.post('/', data: {'name': name});
       return Project.fromJson(response.data);
     } on DioException catch (e) {
       logger.e('Ошибка Dio при создании проекта: ${e.response?.statusCode}');
