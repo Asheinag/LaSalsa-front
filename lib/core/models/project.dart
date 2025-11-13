@@ -4,8 +4,10 @@ class Project {
   final String? description;
   final String status;
   final String? parentId;
+  final String type;
   final DateTime? updatedAt;
   final DateTime? deadline;
+
 
   Project({
     required this.id,
@@ -15,6 +17,7 @@ class Project {
     this.parentId,
     this.updatedAt,
     this.deadline,
+    this.type = 'LIST',
   });
 
   Project copyWith({
@@ -23,8 +26,10 @@ class Project {
     String? description,
     String? status,
     String? parentId,
+    String? type,
     DateTime? updatedAt,
     DateTime? deadline,
+
   }) {
     return Project(
       id: id ?? this.id,
@@ -34,6 +39,7 @@ class Project {
       parentId: parentId ?? this.parentId,
       updatedAt: updatedAt ?? this.updatedAt,
       deadline: deadline ?? this.deadline,
+      type: type ?? this.type,
     );
   }
 
@@ -43,6 +49,7 @@ class Project {
       name: json['name'],
       description: json['description'],
       status: json['status'] ?? 'ACTIVE',
+      type: json['type'] ?? 'LIST',
       parentId: json['parent_id']?.toString(),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
@@ -59,6 +66,7 @@ class Project {
       'name': name,
       if (description != null) 'description': description,
       'status': status,
+      'type': type,
       if (parentId != null) 'parent_id': parentId,
       'deadline': deadline?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),

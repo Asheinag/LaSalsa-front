@@ -82,4 +82,20 @@ class TaskService {
       throw Exception('Не удалось создать задачу.');
     }
   }
+
+  // Поучаем задачи по проекту
+  Future<List<Task>> getTasksByProject({required String projectId}) async {
+    try {
+      logger.i('Загружаем задачи для проекта ID: $projectId');
+      final response = await _dio.get('/projects/$projectId/tasks');
+      final List<dynamic> jsonData = response.data;
+
+      return jsonData.map((taskJson) => Task.fromJson(taskJson)).toList();
+    } on DioException catch (e) {
+      logger.e(
+        'Ошибка Dio при загрузке задач проекта: ${e.response?.statusCode}',
+      );
+      throw Exception('Не удалось загрузить задачи проекта.');
+    }
+  }
 }
