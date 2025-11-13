@@ -9,6 +9,7 @@ class InboxScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // То же самое, но с другими настройками
     return TaskListView(
+      key: const ValueKey('inbox_screen'),
       title: 'Входящие',
       // Передаем ДРУГУЮ функцию для загрузки
       fetcher: () => TaskService().getTasks(offset: '0', limit: '20'),

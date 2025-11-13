@@ -9,6 +9,7 @@ class TodayScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Просто создаем и настраиваем наш универсальный виджет
     return TaskListView(
+      key: const ValueKey('today_screen'),
       title: 'Задачи на сегодня',
       // Передаем саму функцию, которую нужно вызвать для загрузки
       fetcher: () => TaskService().getTodayTasks(offset: '0', limit: '20'),
