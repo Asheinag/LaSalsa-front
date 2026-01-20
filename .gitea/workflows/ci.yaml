@@ -7,12 +7,11 @@ on:
 
 jobs:
   analyze_and_test:
-    runs-on: ubuntu-latest
-    container:
-      # Этот образ уже содержит Flutter, не надо его клонировать!
-      image: mobiledevops/flutter-sdk-image:3.16.3
-
+    # Метка должна в точности совпадать с тем, что ты указал при регистрации
+    runs-on: local-flutter
+    
     steps:
+      # На Windows локальный checkout работает отлично через git
       - name: Checkout code
         uses: actions/checkout@v4
 
