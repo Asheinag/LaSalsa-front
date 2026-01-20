@@ -1,0 +1,28 @@
+name: Gitea Actions CI Pipeline Frontend
+run-name: ${{ gitea.actor }} is testing Gitea Actions
+on:
+  pull_request:
+    branches:
+      - main
+      - development
+      - test
+
+
+jobs:
+  analyze_and_test:
+    runs-on: ubuntu-latest # Или имя твоего тега раннера, если ты его менял
+    container:
+      image: ghcr.io/cirruslabs/flutter:stable # Официально поддерживаемый образ с Flutter
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Static Analysis
+        run: flutter analyze
+
+      - name: Run Tests
+        run: flutter test
