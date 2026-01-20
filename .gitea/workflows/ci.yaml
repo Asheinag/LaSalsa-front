@@ -1,27 +1,37 @@
 name: Flutter CI
 on:
+  push:
+    branches: [main, test, development]
   pull_request:
-    branches:
-      - main
-      - development
-      - test
-
+    branches: [main, test, development]
 
 jobs:
   analyze_and_test:
-    runs-on: ubuntu-latest # Или имя твоего тега раннера, если ты его менял
+    runs-on: ubuntu-latest
     container:
-      image: mobiledevops/flutter-sdk-image # Официально поддерживаемый образ с Flutter
-    
+      image: dart:stable # Официальный образ Dart, Node.js там обычно есть для JS-интерпа
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Flutter
+        run: |
+          git clone https://github.com/flutter/flutter.git -b stable $GITHUB_WORKSPACE/flutter
+          echo "$GITHUB_WORKSPACE/flutter/bin" >> $GITHUB_PATH
+
       - name: Get dependencies
-        run: flutter pub get
+        run: |
+          export PATH="$PATH:$GITHUB_WORKSPACE/flutter/bin"
+          flutter doctor # Проверка здоровья
+          flutter pub get
 
       - name: Static Analysis
-        run: flutter analyze
+        run: |
+          export PATH="$PATH:$GITHUB_WORKSPACE/flutter/bin"
+          flutter analyze
 
       - name: Run Tests
-        run: flutter test
+        run: |
+          export PATH="$PATH:$GITHUB_WORKSPACE/flutter/bin"
+          flutter test
