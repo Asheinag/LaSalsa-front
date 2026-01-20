@@ -15,7 +15,9 @@ jobs:
       # Вместо uses: actions/checkout@v4 делаем ручной клон
       - name: Checkout code
         run: |
-          git clone http://${{ github.token }}@git.kabachok.club/${{ github.repository }}.git .
+          # Используем IP вместо домена, чтобы избежать проблем с DNS
+          # Порт 3000 — стандарт для Gitea HTTP, если у тебя другой (например 80) — замени.
+          git clone http://${{ github.token }}@45.131.40.25:3000/${{ github.repository }}.git .
           git checkout ${{ github.sha }}
 
       - name: Install Flutter
