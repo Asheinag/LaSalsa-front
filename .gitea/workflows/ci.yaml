@@ -10,19 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     container:
       # Этот образ уже содержит Flutter, не надо его клонировать!
-      image: ghcr.io/shubham-gupta-16/flutter-sdk:stable 
+      image: mobiledevops/flutter-sdk-image:3.16.3
 
     steps:
-      - name: Checkout
-        run: |
-          git clone http://${{ github.token }}@45.131.40.25:3000/${{ github.repository }}.git .
-          git checkout ${{ github.sha }}
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Get Deps
-        run: flutter pub get --offline || flutter pub get # Сначала ищем в кэше
+      - name: Get dependencies
+        run: flutter pub get
 
-      - name: Fast Analyze
-        run: flutter analyze lib/ # Анализируем только твой код, а не тесты и пакеты
+      - name: Static Analysis
+        run: flutter analyze
 
       - name: Run Tests
         run: flutter test
