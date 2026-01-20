@@ -1,5 +1,4 @@
-name: Gitea Actions CI Pipeline Frontend
-run-name: ${{ gitea.actor }} is testing Gitea Actions
+name: Flutter CI
 on:
   pull_request:
     branches:
@@ -12,7 +11,7 @@ jobs:
   analyze_and_test:
     runs-on: ubuntu-latest # Или имя твоего тега раннера, если ты его менял
     container:
-      image: ghcr.io/instrumentisto/flutter:stable # Официально поддерживаемый образ с Flutter
+      image: mobiledevops/flutter-sdk-image # Официально поддерживаемый образ с Flutter
     
     steps:
       - name: Checkout code
