@@ -9,21 +9,25 @@ jobs:
   analyze_and_test:
     runs-on: ubuntu-latest
     container:
-      image: dart:stable # Официальный образ Dart, Node.js там обычно есть для JS-интерпа
+      image: dart:stable
 
     steps:
+      # Вместо uses: actions/checkout@v4 делаем ручной клон
       - name: Checkout code
-        uses: actions/checkout@v4
+        run: |
+          git clone http://${{ github.token }}@git.kabachok.club/${{ github.repository }}.git .
+          git checkout ${{ github.sha }}
 
       - name: Install Flutter
         run: |
           git clone https://github.com/flutter/flutter.git -b stable $GITHUB_WORKSPACE/flutter
+          # Добавляем в PATH для текущего шага и всех последующих
           echo "$GITHUB_WORKSPACE/flutter/bin" >> $GITHUB_PATH
 
-      - name: Get dependencies
+      - name: Flutter Doctor & Get Deps
         run: |
           export PATH="$PATH:$GITHUB_WORKSPACE/flutter/bin"
-          flutter doctor # Проверка здоровья
+          flutter doctor
           flutter pub get
 
       - name: Static Analysis
