@@ -12,7 +12,7 @@ jobs:
   analyze_and_test:
     runs-on: ubuntu-latest # Или имя твоего тега раннера, если ты его менял
     container:
-      image: ghcr.io/cirruslabs/flutter:stable # Официально поддерживаемый образ с Flutter
+      image: mobiledevops/flutter-sdk:latest # Официально поддерживаемый образ с Flutter
     
     steps:
       - name: Checkout code
