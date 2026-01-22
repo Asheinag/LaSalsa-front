@@ -34,17 +34,14 @@ jobs:
           scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no frontend.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.LASALSA_HOST }}:/tmp/
 
       - name: Deploy on Remote Server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.LASALSA_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          port: ${{ secrets.SSH_PORT }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            # Очищаем старую статику и распаковываем новую
+        shell: powershell
+        run: |
+          # Мы используем встроенный в Windows ssh клиент
+          # -i (если нужен ключ), -p (порт), остальное как в scp
+          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.LASALSA_HOST }} "
             mkdir -p ~/lasalsa-app/frontend/static
             rm -rf ~/lasalsa-app/frontend/static/*
             tar -xzf /tmp/frontend.tar.gz -C ~/lasalsa-app/frontend/static
             rm /tmp/frontend.tar.gz
-            # Перезапускаем Nginx, чтобы он подхватил файлы (опционально, но надежнее)
             cd ~/lasalsa-app && docker compose -f docker-compose.prod.yml restart lasalsa-nginx
+          "
