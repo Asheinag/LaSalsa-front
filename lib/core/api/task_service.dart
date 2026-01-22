@@ -59,7 +59,7 @@ class TaskService {
   }) async {
     await Future.delayed(const Duration(seconds: 1));
     try {
-      final response = await _dio.get('/tasks?offset=$offset&limit=$limit');
+      final response = await _dio.get('/tasks');
       final List<dynamic> jsonData = response.data;
 
       return jsonData.map((taskJson) => Task.fromJson(taskJson)).toList();
