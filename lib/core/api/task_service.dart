@@ -41,8 +41,8 @@ class TaskService {
   }) async {
     try {
       final response = await _dio.patch(
-        '/tasks/status',
-        data: {'id': taskId, 'status': taskStatus},
+        '/tasks/$taskId',
+        data: {'status': taskStatus},
       );
       return Task.fromJson(response.data);
     } on DioException catch (e) {

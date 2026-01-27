@@ -45,7 +45,7 @@ void main() {
       // Дополнительно можем проверить, что список не пустой
       expect(tasks, isNotEmpty);
 
-      verify(mockDio.get('/tasks/today/?offset=20&limit=0')).called(1);
+      verify(mockDio.get('/tasks/today?offset=20&limit=0')).called(1);
     });
 
     test('getTodayTasks should return tasks with correct data', () async {
@@ -78,7 +78,7 @@ void main() {
       expect(firstTask.description, 'Позвонить клиенту по договору');
       expect(firstTask.status, 'TODO');
 
-      verify(mockDio.get('/tasks/today/?offset=20&limit=0')).called(1);
+      verify(mockDio.get('/tasks/today?offset=20&limit=0')).called(1);
     });
 
     test('createTask should create and return new task ', () async {
@@ -149,9 +149,8 @@ void main() {
 
       verify(
         mockDio.patch(
-          '/tasks/status', // Проверяем, что URL был сформирован правильно
+          '/tasks/1', // Проверяем, что URL был сформирован правильно
           data: {
-            'id': '1',
             'status': 'DONE',
           }, // Проверяем, что в теле запроса были отправлены правильные данные
         ),
