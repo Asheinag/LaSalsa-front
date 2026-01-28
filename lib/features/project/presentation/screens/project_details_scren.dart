@@ -7,9 +7,10 @@ import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 
 class ProjectDetailsScreen extends StatelessWidget {
   final Project project;
-  final TaskService _taskService = TaskService(); // Создаем экземпляр сервиса
+  final TaskService taskService; // Создаем экземпляр сервиса
 
-  ProjectDetailsScreen({super.key, required this.project});
+  ProjectDetailsScreen({super.key, required this.project, TaskService? service})
+    : taskService = service ?? TaskService();
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +19,9 @@ class ProjectDetailsScreen extends StatelessWidget {
     return TaskListView(
       key: ValueKey(project.id),
       title: project.name, // Используем имя проекта как заголовок
-      fetcher: () => _taskService.getTasksByProject(projectId: project.id),
+      fetcher: () => taskService.getTasksByProject(projectId: project.id),
+      creator: (title) =>
+          taskService.createTask(projectId: project.id, taskName: title),
       emptyListMessage: "В этом проекте пока нет задач. Добавьте первую!",
     );
   }

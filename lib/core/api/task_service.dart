@@ -70,12 +70,39 @@ class TaskService {
   }
 
   // Создаем новую задачу
-  Future<Task> createTask({required String taskName}) async {
+  Future<Task> createTask({
+    required String taskName, // Обязательный параметр
+    String? description, // Опционально
+    DateTime? plannedAt, // Опционально (дата выполнения)
+    String? projectId, // Опционально (привязка к проекту)
+    String? parentId,
+  }) async {
     try {
-      final response = await _dio.post(
-        '/tasks',
-        data: {'name': taskName, 'description': ''},
-      );
+      // 1. Собираем базовые данные
+      final Map<String, dynamic> requestData = {
+        'name': taskName,
+        // Если описание не передали, шлем пустую строку (как было у тебя)
+        'description': description ?? '',
+      };
+
+      // 2. Добавляем опциональные поля, ТОЛЬКО если они не null
+      if (projectId != null) {
+        requestData['project_id'] =
+            projectId; // Проверь: на бэке camelCase или snake_case?
+      }
+
+      if (parentId != null) {
+        requestData['parent_id'] = parentId;
+      }
+
+      if (plannedAt != null) {
+        // Даты всегда нужно превращать в строку для отправки по сети
+        requestData['planned_at'] = plannedAt.toIso8601String();
+      }
+
+      // 3. Отправляем запрос
+      final response = await _dio.post('/tasks', data: requestData);
+
       return Task.fromJson(response.data);
     } on DioException catch (e) {
       logger.e('Ошибка Dio при создании задачи: ${e.response?.statusCode}');

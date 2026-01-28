@@ -7,16 +7,19 @@ import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/quick
 
 // Определяем тип для функции-загрузчика
 typedef TasksFetcher = Future<List<Task>> Function();
+typedef TaskCreator = Future<Task> Function(String title);
 
 class TaskListView extends StatefulWidget {
   final String title; // Заголовок экрана
   final TasksFetcher fetcher; // Функция для загрузки задач
+  final TaskCreator creator; // Функция для создания задачи
   final String emptyListMessage; // Сообщение для пустого списка
 
   const TaskListView({
     super.key,
     required this.title,
     required this.fetcher,
+    required this.creator,
     required this.emptyListMessage,
   });
 
@@ -87,7 +90,7 @@ class _TaskListViewState extends State<TaskListView> {
   Future<void> _handleAddTask(String taskName) async {
     // Функция для обработки добавления новой задачи
     try {
-      final newTask = await _taskService.createTask(taskName: taskName);
+      final newTask = await widget.creator(taskName);
       setState(() {
         _tasks.insert(0, newTask); // Добавляем новую задачу в начало списка
       });

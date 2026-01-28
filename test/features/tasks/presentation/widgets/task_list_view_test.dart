@@ -16,11 +16,16 @@ void main() {
         ];
       }
 
+      Future<Task> fakeCreator(String title) async {
+        return Task(id: '2', name: title, description: '', status: 'TODO');
+      }
+
       await tester.pumpWidget(
         MaterialApp(
           home: TaskListView(
             title: 'Test Task List',
             fetcher: fakeFetcher,
+            creator: fakeCreator,
             emptyListMessage: 'Empty',
           ),
         ),
@@ -40,11 +45,16 @@ void main() {
         return [];
       }
 
+      Future<Task> fakeCreator(String title) async {
+        return Task(id: '2', name: title, description: '', status: 'TODO');
+      }
+
       await tester.pumpWidget(
         MaterialApp(
           home: TaskListView(
             title: 'Test Task List',
             fetcher: fakeFetcher,
+            creator: fakeCreator,
             emptyListMessage: 'No tasks available',
           ),
         ),
