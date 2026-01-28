@@ -116,7 +116,7 @@ class _AppSidebarState extends State<AppSidebar> {
               leading: const Icon(Icons.today),
               title: const Text('Сегодня'),
               onTap: () {
-                widget.onScreenSelected(const TodayScreen());
+                widget.onScreenSelected(TodayScreen());
               },
             ),
 

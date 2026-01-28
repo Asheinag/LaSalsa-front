@@ -15,7 +15,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   @override
   void initState() {
     super.initState();
-    _currentScreen = const TodayScreen();
+    _currentScreen = TodayScreen();
   }
 
   void _selectScreen(Widget screen) {
