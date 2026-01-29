@@ -6,12 +6,14 @@ class TaskListBase extends StatelessWidget {
   final List<Task> tasks; // Список задач, который нужно отобразить
   final String emptyListMessage; // Сообщение, если список пуст
   final Function(Task task, String newStatus) onTaskStatusChanged;
+  final Function(Task)? onTaskTap;
 
   const TaskListBase({
     super.key,
     required this.tasks,
     required this.onTaskStatusChanged,
     this.emptyListMessage = "Здесь пока нет задач",
+    this.onTaskTap,
   });
 
   @override
@@ -37,6 +39,7 @@ class TaskListBase extends StatelessWidget {
           onStatusChanged: (newStatus) {
             onTaskStatusChanged(task, newStatus);
           },
+          onTap: onTaskTap != null ? () => onTaskTap!(task) : null,
         );
       },
     );

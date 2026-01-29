@@ -4,15 +4,20 @@ import 'package:kabachok_lasalsa_front/core/models/task.dart';
 class TaskListItem extends StatelessWidget {
   final Task task;
   final Function(String newStatus) onStatusChanged;
+  final VoidCallback? onTap;
+
   const TaskListItem({
     super.key,
     required this.task,
     required this.onStatusChanged,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      onTap: onTap,
+
       leading: Checkbox(
         value: task.status == 'DONE',
         onChanged: (bool? value) {

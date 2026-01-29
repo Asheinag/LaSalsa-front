@@ -14,6 +14,7 @@ class TaskListView extends StatefulWidget {
   final TasksFetcher fetcher; // Функция для загрузки задач
   final TaskCreator creator; // Функция для создания задачи
   final String emptyListMessage; // Сообщение для пустого списка
+  final Function(Task)? onTaskTap; // Обработчик нажатия на задачу
 
   const TaskListView({
     super.key,
@@ -21,6 +22,7 @@ class TaskListView extends StatefulWidget {
     required this.fetcher,
     required this.creator,
     required this.emptyListMessage,
+    this.onTaskTap,
   });
 
   @override
@@ -122,6 +124,7 @@ class _TaskListViewState extends State<TaskListView> {
                     onTaskStatusChanged: _handleStatusUpdate,
                     emptyListMessage: widget
                         .emptyListMessage, // Используем переданное сообщение
+                    onTaskTap: widget.onTaskTap,
                   ),
           ),
           QuickAddTaskBar(onTaskSubmitted: _handleAddTask),

@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
-import 'package:kabachok_lasalsa_front/features/inbox/presentation/screens/inbox_screen.dart';
-import 'package:kabachok_lasalsa_front/features/today/presentation/screens/today_screen.dart';
-import 'package:kabachok_lasalsa_front/features/project/presentation/screens/project_details_scren.dart';
 
 class AppSidebar extends StatefulWidget {
-  final Function(Widget) onScreenSelected;
+  final Function(String pageId, {dynamic args}) onPageSelected;
 
-  const AppSidebar({super.key, required this.onScreenSelected});
+  const AppSidebar({super.key, required this.onPageSelected});
 
   @override
   State<AppSidebar> createState() => _AppSidebarState();
@@ -19,7 +16,6 @@ class _AppSidebarState extends State<AppSidebar> {
   bool _isLoading = true;
   List<Project> _projects = [];
   final ProjectService _projectService = ProjectService();
-
   bool _isCreatingProject = false; // Флаг, показывающий поле ввода
   final _newProjectController =
       TextEditingController(); // Контроллер для создания нового проекта
@@ -112,34 +108,38 @@ class _AppSidebarState extends State<AppSidebar> {
                 style: TextStyle(color: Colors.white, fontSize: 24),
               ),
             ),
+            // --- СЕКЦИЯ "СЕГОДНЯ" ---
             ListTile(
               leading: const Icon(Icons.today),
               title: const Text('Сегодня'),
               onTap: () {
-                widget.onScreenSelected(TodayScreen());
+                // ИЗМЕНЕНИЕ 2: Передаем ID вместо Виджета
+                widget.onPageSelected('today');
               },
             ),
 
+            // --- СЕКЦИЯ "ВХОДЯЩИЕ" ---
             ListTile(
               leading: const Icon(Icons.inbox),
               title: const Text('Входящие'),
               onTap: () {
-                widget.onScreenSelected(const InboxScreen());
+                // ИЗМЕНЕНИЕ 3: Передаем ID
+                widget.onPageSelected('inbox');
               },
             ),
+
             const Divider(),
+
+            // ... (Код кнопки "Создать проект" оставляем как есть) ...
             ListTile(
               leading: const Icon(Icons.add, color: Colors.blueGrey),
               title: const Text(
                 'Создать проект',
                 style: TextStyle(color: Colors.blueGrey),
               ),
-              onTap: () {
-                setState(() {
-                  _isCreatingProject = true;
-                });
-              },
+              onTap: () => setState(() => _isCreatingProject = true),
             ),
+
             const Divider(),
 
             Expanded(
@@ -184,9 +184,8 @@ class _AppSidebarState extends State<AppSidebar> {
                           ),
                           title: Text(project.name),
                           onTap: () {
-                            widget.onScreenSelected(
-                              ProjectDetailsScreen(project: project),
-                            );
+                            // ИЗМЕНЕНИЕ 4: Передаем ID 'project' и сам объект проекта в args
+                            widget.onPageSelected('project', args: project);
                           },
                         );
                       },

@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/task_list_view.dart';
+import 'package:kabachok_lasalsa_front/core/models/task.dart';
 
 class TodayScreen extends StatelessWidget {
   // Добавляем поле для сервиса
   final TaskService taskService;
+  final Function(Task)? onTaskTap;
 
   // В конструкторе принимаем его опционально.
   // Если передали (в тесте) - берем его.
   // Если нет (в приложении) - создаем новый TaskService().
-  TodayScreen({super.key, TaskService? service})
+  TodayScreen({super.key, TaskService? service, this.onTaskTap})
     : taskService = service ?? TaskService();
 
   @override
@@ -28,6 +30,7 @@ class TodayScreen extends StatelessWidget {
         );
       },
       emptyListMessage: 'На сегодня всё! Отличная работа!',
+      onTaskTap: onTaskTap,
     );
   }
 }
