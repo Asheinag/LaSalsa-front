@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
+import 'package:kabachok_lasalsa_front/core/theme/project_colors.dart';
 
 class TaskInspector extends StatelessWidget {
   final Task? task;
@@ -49,6 +50,20 @@ class TaskInspector extends StatelessWidget {
         projectName = 'Неизвестный проект';
       }
     }
+
+    Color? projectColor;
+    if (t.projectId != null) {
+      try {
+        final project = projects.firstWhere((p) => p.id == t.projectId);
+        projectColor = ProjectColorData.getColor(
+          context,
+          int.tryParse(project.colorId ?? '0') ?? 0,
+        );
+      } catch (e) {
+        projectColor = Colors.grey;
+      }
+    }
+
     // Основная верстка деталей
     return Container(
       color: Colors.white, // Фон инспектора
@@ -85,7 +100,7 @@ class TaskInspector extends StatelessWidget {
                   Chip(
                     avatar: const Icon(Icons.folder_open, size: 16),
                     label: Text('$projectName'),
-                    backgroundColor: Colors.blue[50],
+                    backgroundColor: projectColor,
                     side: BorderSide.none,
                   ),
                   const SizedBox(height: 16),

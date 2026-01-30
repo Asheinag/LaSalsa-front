@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
+import 'package:kabachok_lasalsa_front/core/theme/project_colors.dart';
 
 class AppSidebar extends StatefulWidget {
   final List<Project> projects; // Список проектов
@@ -157,9 +158,12 @@ class _AppSidebarState extends State<AppSidebar> {
                   // В противном случае, это обычный элемент
                   final project = projectsList[index];
                   return ListTile(
-                    leading: const Icon(
+                    leading: Icon(
                       Icons.circle,
-                      color: Colors.grey,
+                      color: ProjectColorData.getColor(
+                        context,
+                        int.tryParse(project.colorId ?? '0') ?? 0,
+                      ),
                       size: 14,
                     ),
                     title: Text(project.name),

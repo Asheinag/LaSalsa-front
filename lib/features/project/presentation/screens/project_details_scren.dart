@@ -21,7 +21,7 @@ class ProjectDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Вся работа - это вернуть и настроить TaskListView!
-    logger.i('Открты проект: ${project.name} (ID: ${project.id})');
+    logger.i('Открыт проект: ${project.name} (ID: ${project.id})');
     return TaskListView(
       key: ValueKey(project.id),
       title: project.name, // Используем имя проекта как заголовок
