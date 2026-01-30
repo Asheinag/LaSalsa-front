@@ -171,4 +171,14 @@ class TaskService {
       throw Exception('Не удалось получить детали задачи.');
     }
   }
+
+  // Удаляем задачу
+  Future<void> deleteTask({required String taskId}) async {
+    try {
+      await _dio.delete('/tasks/$taskId');
+    } on DioException catch (e) {
+      logger.e('Ошибка Dio при удалении задачи: ${e.response?.statusCode}');
+      throw Exception('Не удалось удалить задачу.');
+    }
+  }
 }

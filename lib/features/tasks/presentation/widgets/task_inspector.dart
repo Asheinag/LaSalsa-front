@@ -10,6 +10,7 @@ class TaskInspector extends StatefulWidget {
   final Task? task;
   final List<Project> projects;
   final VoidCallback? onClose; // Кнопка закрыть (для мобилок или если надоело)
+  final VoidCallback? onDelete; // Кнопка удалить (если нужно)
   final Future<void> Function(Task updatedTask)?
   onTaskUpdated; // Коллбек на обновление задачи
 
@@ -18,6 +19,7 @@ class TaskInspector extends StatefulWidget {
     this.task,
     this.projects = const [],
     this.onClose,
+    this.onDelete,
     this.onTaskUpdated,
   });
 
@@ -31,7 +33,6 @@ class _TaskInspectorState extends State<TaskInspector> {
 
   Timer? _debounceTimer;
 
-  bool _isLoading = false;
   bool _isSaving = false;
   final TaskService _taskService = TaskService();
 
@@ -91,16 +92,13 @@ class _TaskInspectorState extends State<TaskInspector> {
 
   Future<void> _getTaskDetails() async {
     if (widget.task == null) return;
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() {});
     try {
       final detailedTask = await _taskService.getTaskDetails(
         taskId: widget.task!.id,
       );
       if (mounted) {
         setState(() {
-          _isLoading = false;
           // Обновляем контроллеры
           _nameController.text = detailedTask.name;
           _descriptionController.text = detailedTask.description;
@@ -183,6 +181,21 @@ class _TaskInspectorState extends State<TaskInspector> {
     }
   }
 
+  Future<void> _deleteTask() async {
+    if (widget.task == null) return;
+
+    try {
+      await _taskService.deleteTask(taskId: widget.task!.id);
+      if (mounted && widget.onDelete != null) {
+        widget.onDelete!();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка удаления задачи: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Состояние, когда задача не выбрана
@@ -228,6 +241,13 @@ class _TaskInspectorState extends State<TaskInspector> {
                     ).textTheme.labelLarge?.copyWith(color: Colors.grey),
                   ),
                 ),
+                if (widget.onDelete != null) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                    onPressed: _deleteTask,
+                  ),
+                ],
                 if (widget.onClose != null)
                   IconButton(
                     icon: const Icon(Icons.close),

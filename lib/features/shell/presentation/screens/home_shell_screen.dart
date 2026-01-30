@@ -166,6 +166,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                 task: _selectedTask,
                 projects: _projects,
                 onClose: () => setState(() => _selectedTask = null),
+                onDelete: () => setState(() => _selectedTask = null),
                 onTaskUpdated: _handleTaskUpdate,
               ),
             ),
