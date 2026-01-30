@@ -3,6 +3,7 @@ import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/features/shell/presentation/widgets/app_sidebar.dart';
 import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/task_inspector.dart';
+import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 // Импортируй свои экраны
 import 'package:kabachok_lasalsa_front/features/today/presentation/screens/today_screen.dart';
 import 'package:kabachok_lasalsa_front/features/inbox/presentation/screens/inbox_screen.dart';
@@ -18,15 +19,38 @@ class HomeShellScreen extends StatefulWidget {
 }
 
 class _HomeShellScreenState extends State<HomeShellScreen> {
-  // 1. Храним не сам виджет экрана, а "Идентификатор" того, что выбрано
-  // (В идеале это enum, но пока пусть будет String или int index)
   String _selectedPageId = 'today';
+  dynamic _currentPageArgs; // Храним аргументы (например, выбранный проект)
+  Task? _selectedTask; // Храним выбранную задачу для третьей колонки
+  bool _isLoading = true; // Флаг загрузки проектов
+  List<Project> _projects = []; // Список проектов
+  final ProjectService _projectService =
+      ProjectService(); // Сервис для работы с проектами
 
-  // Храним аргументы (например, выбранный проект)
-  dynamic _currentPageArgs;
+  @override
+  void initState() {
+    super.initState();
+    _fetchProjects(); // Загружаем при старте приложения
+  }
 
-  // 2. Храним выбранную задачу для третьей колонки
-  Task? _selectedTask;
+  Future<void> _fetchProjects() async {
+    try {
+      final projects = await _projectService.getProjects();
+      if (mounted) {
+        setState(() {
+          _projects = projects;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      logger.e('Ошибка при загрузке проектов: $e');
+    }
+  }
 
   // Обработчик переключения страниц (приходит из Sidebar)
   void _onPageChanged(String pageId, {dynamic args}) {
@@ -86,27 +110,33 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       body: Row(
         children: [
           // 1. Сайдбар
-          AppSidebar(
-            // Передаем нашу новую функцию
-            onPageSelected: _onPageChanged,
-          ),
-
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : AppSidebar(
+                  projects:
+                      _projects, // <-- AppSidebar теперь просто "рисует" их
+                  onPageSelected:
+                      _onPageChanged, // <-- Передаем метод переключения страниц
+                  onProjectCreated: (newProject) {
+                    setState(() {
+                      _projects.add(newProject);
+                    });
+                  },
+                ),
           const VerticalDivider(width: 1, thickness: 1),
 
           // 2. Основной контент
           Expanded(flex: 5, child: _buildActiveScreen()),
 
-          // --------------------------
-          // 3. ПРАВАЯ КОЛОНКА (Инспектор)
-          // --------------------------
+          // 3. Правая колонка с инспектором задачи
           if (isDesktop) ...[
             // Показываем только на широком экране
             const VerticalDivider(width: 1, thickness: 1),
-
             Expanded(
               flex: 2, // Занимает 3 части ширины (чуть уже списка)
               child: TaskInspector(
                 task: _selectedTask,
+                projects: _projects,
                 onClose: () => setState(() => _selectedTask = null),
               ),
             ),

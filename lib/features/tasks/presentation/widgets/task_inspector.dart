@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Не забудь добавить intl в pubspec.yaml если нет
+import 'package:intl/intl.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
+import 'package:kabachok_lasalsa_front/core/models/project.dart';
 
 class TaskInspector extends StatelessWidget {
   final Task? task;
+  final List<Project> projects;
   final VoidCallback? onClose; // Кнопка закрыть (для мобилок или если надоело)
 
-  const TaskInspector({super.key, this.task, this.onClose});
+  const TaskInspector({
+    super.key,
+    this.task,
+    this.projects = const [],
+    this.onClose,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +40,15 @@ class TaskInspector extends StatelessWidget {
 
     final t = task!;
 
+    String? projectName;
+    if (t.projectId != null) {
+      try {
+        final project = projects.firstWhere((p) => p.id == t.projectId);
+        projectName = project.name;
+      } catch (e) {
+        projectName = 'Неизвестный проект';
+      }
+    }
     // Основная верстка деталей
     return Container(
       color: Colors.white, // Фон инспектора
@@ -68,9 +84,7 @@ class TaskInspector extends StatelessWidget {
                 if (t.projectId != null) ...[
                   Chip(
                     avatar: const Icon(Icons.folder_open, size: 16),
-                    label: Text(
-                      'Проект: ${t.projectId}',
-                    ), // TODO: Найти имя проекта
+                    label: Text('$projectName'),
                     backgroundColor: Colors.blue[50],
                     side: BorderSide.none,
                   ),
