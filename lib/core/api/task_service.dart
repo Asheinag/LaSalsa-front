@@ -125,4 +125,50 @@ class TaskService {
       throw Exception('Не удалось загрузить задачи проекта.');
     }
   }
+
+  // Обновляем задачу
+  Future<Task> updateTask({
+    required String taskId,
+    String? name,
+    String? description,
+    String? status,
+    DateTime? plannedAt,
+    String? projectId,
+    String? parentId,
+    String? colorId,
+  }) async {
+    try {
+      final Map<String, dynamic> requestData = {};
+
+      if (name != null) requestData['name'] = name;
+      if (description != null) requestData['description'] = description;
+      if (status != null) requestData['status'] = status;
+      if (colorId != null) requestData['color_id'] = colorId;
+      if (plannedAt != null) {
+        requestData['planned_at'] = plannedAt.toIso8601String();
+      }
+      if (projectId != null) requestData['project_id'] = projectId;
+      if (parentId != null) requestData['parent_id'] = parentId;
+
+      final response = await _dio.patch('/tasks/$taskId', data: requestData);
+
+      return Task.fromJson(response.data);
+    } on DioException catch (e) {
+      logger.e('Ошибка Dio при обновлении задачи: ${e.response?.statusCode}');
+      throw Exception('Не удалось обновить задачу.');
+    }
+  }
+
+  // Получаем детали задачи
+  Future<Task> getTaskDetails({required String taskId}) async {
+    try {
+      final response = await _dio.get('/tasks/$taskId');
+      return Task.fromJson(response.data);
+    } on DioException catch (e) {
+      logger.e(
+        'Ошибка Dio при получении деталей задачи: ${e.response?.statusCode}',
+      );
+      throw Exception('Не удалось получить детали задачи.');
+    }
+  }
 }

@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+// Импорты моделей
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
+// Импорты виджетов
 import 'package:kabachok_lasalsa_front/features/shell/presentation/widgets/app_sidebar.dart';
 import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/task_inspector.dart';
+// Импорты сервисов
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
-// Импортируй свои экраны
+import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
+// Импорты экранов
 import 'package:kabachok_lasalsa_front/features/today/presentation/screens/today_screen.dart';
 import 'package:kabachok_lasalsa_front/features/inbox/presentation/screens/inbox_screen.dart';
 import 'package:kabachok_lasalsa_front/features/project/presentation/screens/project_details_scren.dart';
@@ -19,13 +23,15 @@ class HomeShellScreen extends StatefulWidget {
 }
 
 class _HomeShellScreenState extends State<HomeShellScreen> {
-  String _selectedPageId = 'today';
+  String _selectedPageId = 'today'; // Задачем начальную страницу - Сегодня
   dynamic _currentPageArgs; // Храним аргументы (например, выбранный проект)
   Task? _selectedTask; // Храним выбранную задачу для третьей колонки
   bool _isLoading = true; // Флаг загрузки проектов
   List<Project> _projects = []; // Список проектов
   final ProjectService _projectService =
       ProjectService(); // Сервис для работы с проектами
+  final TaskService _taskService =
+      TaskService(); // Сервис для работы с задачами
 
   @override
   void initState() {
@@ -33,6 +39,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     _fetchProjects(); // Загружаем при старте приложения
   }
 
+  // Метод загрузки проектов
   Future<void> _fetchProjects() async {
     try {
       final projects = await _projectService.getProjects();
@@ -49,6 +56,27 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         });
       }
       logger.e('Ошибка при загрузке проектов: $e');
+    }
+  }
+
+  // Метод обновления задачи из инспектора
+  Future<void> _handleTaskUpdate(Task updatedTask) async {
+    try {
+      setState(() {
+        _selectedTask = updatedTask;
+      });
+
+      final result = await _taskService.updateTask(
+        taskId: updatedTask.id,
+        name: updatedTask.name,
+        description: updatedTask.description,
+        projectId: updatedTask.projectId,
+        plannedAt: updatedTask.plannedAt,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
     }
   }
 
@@ -138,6 +166,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                 task: _selectedTask,
                 projects: _projects,
                 onClose: () => setState(() => _selectedTask = null),
+                onTaskUpdated: _handleTaskUpdate,
               ),
             ),
           ],
