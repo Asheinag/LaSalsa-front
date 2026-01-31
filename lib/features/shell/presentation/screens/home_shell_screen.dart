@@ -66,7 +66,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         _selectedTask = updatedTask;
       });
 
-      final result = await _taskService.updateTask(
+      await _taskService.updateTask(
         taskId: updatedTask.id,
         name: updatedTask.name,
         description: updatedTask.description,
@@ -74,9 +74,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         plannedAt: updatedTask.plannedAt,
       );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
+      }
     }
   }
 

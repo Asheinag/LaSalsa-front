@@ -106,9 +106,11 @@ class _TaskInspectorState extends State<TaskInspector> {
       }
     } catch (e) {
       // Ошибка загрузки деталей задачи
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка загрузки задачи: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Ошибка загрузки задачи: $e')));
+      }
     }
   }
 
@@ -190,9 +192,11 @@ class _TaskInspectorState extends State<TaskInspector> {
         widget.onDelete!();
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка удаления задачи: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Ошибка удаления задачи: $e')));
+      }
     }
   }
 
