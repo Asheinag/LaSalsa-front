@@ -12,7 +12,7 @@ class TodayScreen extends StatelessWidget {
   // Если передали (в тесте) - берем его.
   // Если нет (в приложении) - создаем новый TaskService().
   TodayScreen({super.key, TaskService? service, this.onTaskTap})
-    : taskService = service ?? TaskService();
+      : taskService = service ?? TaskService();
 
   @override
   Widget build(BuildContext context) {
@@ -20,13 +20,14 @@ class TodayScreen extends StatelessWidget {
     return TaskListView(
       key: const ValueKey('today_screen'),
       title: 'Задачи на сегодня',
+      initialDate: DateTime.now(),
       // Передаем саму функцию, которую нужно вызвать для загрузки
       fetcher: () => taskService.getTodayTasks(offset: '0', limit: '20'),
-      creator: (title) {
+      creator: (title, plannedAt) {
         final now = DateTime.now();
         return taskService.createTask(
           taskName: title,
-          plannedAt: DateTime(now.year, now.month, now.day, 12, 00, 00),
+          plannedAt: plannedAt ?? DateTime(now.year, now.month, now.day, 12),
         );
       },
       emptyListMessage: 'На сегодня всё! Отличная работа!',

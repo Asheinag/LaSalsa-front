@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
@@ -19,7 +20,6 @@ void main() {
 
   testWidgets('TodayScreen adds task with current date', (tester) async {
     // 1. Настраиваем моки
-    // Когда экран просит список задач - возвращаем пустоту
     when(
       mockTaskService.getTodayTasks(
         offset: anyNamed('offset'),
@@ -27,66 +27,43 @@ void main() {
       ),
     ).thenAnswer((_) async => []);
 
-    // Когда экран создает задачу - возвращаем фейковую задачу
     when(
       mockTaskService.createTask(
         taskName: anyNamed('taskName'),
-        plannedAt: anyNamed(
-          'plannedAt',
-        ), // Нам важно, что этот параметр придет!
+        plannedAt: anyNamed('plannedAt'),
       ),
     ).thenAnswer(
-      (_) async => Task(
-        id: '123',
-        name: 'New Task',
-        description: '',
-        status: 'TODO',
-        plannedAt: DateTime.now(),
-      ),
+      (_) async => Task(id: '123', name: 'New Task', description: '', status: 'TODO'),
     );
 
-    // 2. Рендерим экран, передавая мок
+    // 2. Рендерим экран
     await tester.pumpWidget(
       MaterialApp(home: TodayScreen(service: mockTaskService)),
     );
-
-    // Ждем окончания загрузки (ProgressIndicator должен уйти)
     await tester.pumpAndSettle();
 
-    // 3. Находим поле ввода и кнопку
-    final inputFinder = find.byType(TextField);
-    final buttonFinder = find.byType(
-      IconButton,
-    ); // Кнопка отправки в QuickAddTaskBar
+    // 3. Проверяем, что дата по умолчанию (сегодня) отображается
+    final todayString = DateFormat('dd.MM').format(DateTime.now());
+    expect(find.text(todayString), findsOneWidget);
 
     // 4. Вводим текст
-    await tester.enterText(inputFinder, 'Купить молоко');
-    await tester.pump();
+    await tester.enterText(find.byType(TextField), 'Купить молоко');
+    await tester.tap(find.byTooltip('Добавить задачу'));
+    await tester.pumpAndSettle();
 
-    // 5. Жмем отправить
-    await tester.tap(buttonFinder);
-    await tester.pumpAndSettle(); // Ждем завершения асинхронной операции
-
-    // 6. ПРОВЕРКА - убедимся, что createTask вызвался с правильными параметрами
+    // 5. ПРОВЕРКА
     verify(
       mockTaskService.createTask(
-        taskName: 'Купить молоко', // Тут конкретное значение, named не нужен
-        // ИСПРАВЛЕНИЕ: Добавляем named: 'plannedAt'
+        taskName: 'Купить молоко',
         plannedAt: argThat(
-          predicate<DateTime?>((date) {
-            if (date == null) return false;
+          isA<DateTime>().having((date) {
             final now = DateTime.now();
             return date.year == now.year &&
                 date.month == now.month &&
                 date.day == now.day;
-          }),
-          named: 'plannedAt', // <--- ВОТ ЭТОГО НЕ ХВАТАЛО
+          }, 'isToday', true),
+          named: 'plannedAt',
         ),
-
-        // Для остальных используем anyNamed, который уже внутри имеет named
-        description: anyNamed('description'),
-        projectId: anyNamed('projectId'),
-        parentId: anyNamed('parentId'),
       ),
     ).called(1);
   });
@@ -106,15 +83,16 @@ void main() {
       ),
     ).thenAnswer((_) async => fakeTasks);
 
-    // Mock the creator as well to avoid errors on add
-    when(mockTaskService.createTask(taskName: anyNamed('taskName')))
-        .thenAnswer((_) async => Task(id: '3', name: 'New', description: '', status: 'TODO'));
+    when(mockTaskService.createTask(
+            taskName: anyNamed('taskName'), plannedAt: anyNamed('plannedAt')))
+        .thenAnswer((_) async =>
+            Task(id: '3', name: 'New', description: '', status: 'TODO'));
 
     // ACT
     await tester.pumpWidget(
       MaterialApp(home: TodayScreen(service: mockTaskService)),
     );
-    await tester.pumpAndSettle(); // Wait for fetch and UI update
+    await tester.pumpAndSettle();
 
     // ASSERT
     expect(find.byType(CircularProgressIndicator), findsNothing);
@@ -130,19 +108,18 @@ void main() {
     final updatedTask =
         Task(id: '1', name: 'Task to be done', description: '', status: 'DONE');
 
-    // Mock fetch
     when(mockTaskService.getTodayTasks(
             offset: anyNamed('offset'), limit: anyNamed('limit')))
         .thenAnswer((_) async => [initialTask]);
 
-    // Mock update
     when(mockTaskService.updateTaskStatus(
             taskId: '1', taskStatus: 'DONE'))
         .thenAnswer((_) async => updatedTask);
-    
-    // Mock the creator as well
-    when(mockTaskService.createTask(taskName: anyNamed('taskName')))
-        .thenAnswer((_) async => Task(id: '3', name: 'New', description: '', status: 'TODO'));
+
+    when(mockTaskService.createTask(
+            taskName: anyNamed('taskName'), plannedAt: anyNamed('plannedAt')))
+        .thenAnswer((_) async =>
+            Task(id: '3', name: 'New', description: '', status: 'TODO'));
 
     // ACT
     await tester.pumpWidget(
@@ -150,7 +127,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Find the checkbox within the list item for our specific task
     final checkboxFinder = find.descendant(
       of: find.widgetWithText(ListTile, 'Task to be done'),
       matching: find.byType(Checkbox),

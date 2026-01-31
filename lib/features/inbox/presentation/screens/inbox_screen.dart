@@ -14,7 +14,8 @@ class InboxScreen extends StatelessWidget {
       title: 'Входящие',
       // Передаем ДРУГУЮ функцию для загрузки
       fetcher: () => TaskService().getTasks(offset: '0', limit: '20'),
-      creator: (title) => TaskService().createTask(taskName: title),
+      creator: (title, plannedAt) =>
+          TaskService().createTask(taskName: title, plannedAt: plannedAt),
       emptyListMessage: 'Вообще нет задач! Вы сделали всё!',
       onTaskTap: onTaskTap,
     );
