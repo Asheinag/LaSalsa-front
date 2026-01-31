@@ -90,4 +90,79 @@ void main() {
       ),
     ).called(1);
   });
+
+  testWidgets('TodayScreen should display tasks on successful fetch',
+      (tester) async {
+    // ARRANGE
+    final fakeTasks = [
+      Task(id: '1', name: 'Task 1', description: '', status: 'TODO'),
+      Task(id: '2', name: 'Task 2', description: '', status: 'TODO'),
+    ];
+
+    when(
+      mockTaskService.getTodayTasks(
+        offset: anyNamed('offset'),
+        limit: anyNamed('limit'),
+      ),
+    ).thenAnswer((_) async => fakeTasks);
+
+    // Mock the creator as well to avoid errors on add
+    when(mockTaskService.createTask(taskName: anyNamed('taskName')))
+        .thenAnswer((_) async => Task(id: '3', name: 'New', description: '', status: 'TODO'));
+
+    // ACT
+    await tester.pumpWidget(
+      MaterialApp(home: TodayScreen(service: mockTaskService)),
+    );
+    await tester.pumpAndSettle(); // Wait for fetch and UI update
+
+    // ASSERT
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Task 1'), findsOneWidget);
+    expect(find.text('Task 2'), findsOneWidget);
+  });
+
+  testWidgets('should call update service when a task is checked',
+      (tester) async {
+    // ARRANGE
+    final initialTask =
+        Task(id: '1', name: 'Task to be done', description: '', status: 'TODO');
+    final updatedTask =
+        Task(id: '1', name: 'Task to be done', description: '', status: 'DONE');
+
+    // Mock fetch
+    when(mockTaskService.getTodayTasks(
+            offset: anyNamed('offset'), limit: anyNamed('limit')))
+        .thenAnswer((_) async => [initialTask]);
+
+    // Mock update
+    when(mockTaskService.updateTaskStatus(
+            taskId: '1', taskStatus: 'DONE'))
+        .thenAnswer((_) async => updatedTask);
+    
+    // Mock the creator as well
+    when(mockTaskService.createTask(taskName: anyNamed('taskName')))
+        .thenAnswer((_) async => Task(id: '3', name: 'New', description: '', status: 'TODO'));
+
+    // ACT
+    await tester.pumpWidget(
+      MaterialApp(home: TodayScreen(service: mockTaskService)),
+    );
+    await tester.pumpAndSettle();
+
+    // Find the checkbox within the list item for our specific task
+    final checkboxFinder = find.descendant(
+      of: find.widgetWithText(ListTile, 'Task to be done'),
+      matching: find.byType(Checkbox),
+    );
+
+    expect(checkboxFinder, findsOneWidget);
+
+    await tester.tap(checkboxFinder);
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    verify(mockTaskService.updateTaskStatus(taskId: '1', taskStatus: 'DONE'))
+        .called(1);
+  });
 }

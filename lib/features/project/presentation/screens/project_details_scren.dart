@@ -30,6 +30,7 @@ class ProjectDetailsScreen extends StatelessWidget {
           taskService.createTask(projectId: project.id, taskName: title),
       emptyListMessage: "В этом проекте пока нет задач. Добавьте первую!",
       onTaskTap: onTaskTap,
+      service: taskService,
     );
   }
 }

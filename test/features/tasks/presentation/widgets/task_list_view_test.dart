@@ -68,5 +68,41 @@ void main() {
       expect(find.byType(TaskListBase), findsOneWidget);
       expect(find.text('No tasks available'), findsOneWidget);
     });
+
+    testWidgets('Check error message on fetch failure',
+        (WidgetTester tester) async {
+      // ARRANGE: Наш загрузчик теперь просто бросает исключение
+      Future<List<Task>> fakeFetcher() async {
+        throw Exception('Failed to load');
+      }
+
+      Future<Task> fakeCreator(String title) async {
+        return Task(id: '2', name: title, description: '', status: 'TODO');
+      }
+
+      // ACT
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TaskListView(
+            title: 'Test Task List',
+            fetcher: fakeFetcher,
+            creator: fakeCreator,
+            emptyListMessage: 'Empty',
+          ),
+        ),
+      );
+
+      // ASSERT: Сначала индикатор
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(TaskListBase), findsNothing);
+
+      // ACT: Ждем завершения
+      await tester.pumpAndSettle();
+
+      // ASSERT: Теперь - сообщение об ошибке
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(TaskListBase), findsNothing);
+      expect(find.text('Не удалось загрузить задачи.'), findsOneWidget);
+    });
   });
 }

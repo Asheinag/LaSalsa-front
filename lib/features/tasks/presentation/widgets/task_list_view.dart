@@ -15,6 +15,7 @@ class TaskListView extends StatefulWidget {
   final TaskCreator creator; // Функция для создания задачи
   final String emptyListMessage; // Сообщение для пустого списка
   final Function(Task)? onTaskTap; // Обработчик нажатия на задачу
+  final TaskService? service;
 
   const TaskListView({
     super.key,
@@ -23,6 +24,7 @@ class TaskListView extends StatefulWidget {
     required this.creator,
     required this.emptyListMessage,
     this.onTaskTap,
+    this.service,
   });
 
   @override
@@ -31,12 +33,14 @@ class TaskListView extends StatefulWidget {
 
 class _TaskListViewState extends State<TaskListView> {
   bool _isLoading = true;
+  String? _error;
   List<Task> _tasks = [];
-  final TaskService _taskService = TaskService();
+  late final TaskService _taskService;
 
   @override
   void initState() {
     super.initState();
+    _taskService = widget.service ?? TaskService();
     _fetchTasks();
   }
 
@@ -53,6 +57,7 @@ class _TaskListViewState extends State<TaskListView> {
     } catch (e) {
       if (mounted) {
         setState(() {
+          _error = 'Не удалось загрузить задачи.';
           _isLoading = false;
         });
       }
@@ -106,6 +111,23 @@ class _TaskListViewState extends State<TaskListView> {
     }
   }
 
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+          child: Text(_error!, style: const TextStyle(color: Colors.red)));
+    }
+    return TaskListBase(
+      tasks: _tasks,
+      onTaskStatusChanged: _handleStatusUpdate,
+      emptyListMessage:
+          widget.emptyListMessage, // Используем переданное сообщение
+      onTaskTap: widget.onTaskTap,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -117,15 +139,7 @@ class _TaskListViewState extends State<TaskListView> {
       body: Column(
         children: [
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : TaskListBase(
-                    tasks: _tasks,
-                    onTaskStatusChanged: _handleStatusUpdate,
-                    emptyListMessage: widget
-                        .emptyListMessage, // Используем переданное сообщение
-                    onTaskTap: widget.onTaskTap,
-                  ),
+            child: _buildBody(),
           ),
           QuickAddTaskBar(onTaskSubmitted: _handleAddTask),
         ],

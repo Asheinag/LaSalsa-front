@@ -8,9 +8,11 @@ class ProjectService {
   final Dio _dio;
   static final String _url = '$apiBaseUrl/projects';
 
-  // Настраиваем Dio с базовым URL  и перехватчиком
-  ProjectService() : _dio = Dio(BaseOptions(baseUrl: _url)) {
-    _dio.interceptors.add(AuthInterceptor());
+  ProjectService({Dio? dio})
+      : _dio = dio ?? Dio(BaseOptions(baseUrl: _url)) {
+    if (dio == null) {
+      _dio.interceptors.add(AuthInterceptor());
+    }
   }
 
   // Получаем список проектов для текущего пользователя
