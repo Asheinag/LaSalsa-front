@@ -37,6 +37,7 @@ void main() {
       mockTaskService.createTask(
         taskName: anyNamed('taskName'),
         projectId: anyNamed('projectId'), // Важный параметр
+        plannedAt: anyNamed('plannedAt'),
       ),
     ).thenAnswer(
       (_) async => Task(
@@ -61,16 +62,16 @@ void main() {
 
     // 4. Действие пользователя
     await tester.enterText(find.byType(TextField), 'Задача в проект');
-    await tester.tap(find.byType(IconButton));
+    await tester.tap(find.byTooltip('Добавить задачу'));
     await tester.pumpAndSettle();
 
     // 5. Проверка
     verify(
       mockTaskService.createTask(
-        taskName: 'Задача в проект',
-        projectId:
-            testProjectId, // <--- Убеждаемся, что ID проекта улетел на бэкенд
-      ),
+          taskName: 'Задача в проект',
+          projectId:
+              testProjectId, // <--- Убеждаемся, что ID проекта улетел на бэкенд
+          plannedAt: null),
     ).called(1);
   });
 
@@ -99,7 +100,9 @@ void main() {
     // Mock the creator as well
     when(
       mockTaskService.createTask(
-          taskName: anyNamed('taskName'), projectId: anyNamed('projectId')),
+          taskName: anyNamed('taskName'),
+          projectId: anyNamed('projectId'),
+          plannedAt: anyNamed('plannedAt')),
     ).thenAnswer(
       (_) async => Task(
           id: '3',

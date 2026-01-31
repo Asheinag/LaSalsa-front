@@ -7,7 +7,7 @@ import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/quick
 
 // Определяем тип для функции-загрузчика
 typedef TasksFetcher = Future<List<Task>> Function();
-typedef TaskCreator = Future<Task> Function(String title);
+typedef TaskCreator = Future<Task> Function(String title, DateTime? plannedAt);
 
 class TaskListView extends StatefulWidget {
   final String title; // Заголовок экрана
@@ -16,6 +16,8 @@ class TaskListView extends StatefulWidget {
   final String emptyListMessage; // Сообщение для пустого списка
   final Function(Task)? onTaskTap; // Обработчик нажатия на задачу
   final TaskService? service;
+  final String? initialValue;
+  final DateTime? initialDate;
 
   const TaskListView({
     super.key,
@@ -25,6 +27,8 @@ class TaskListView extends StatefulWidget {
     required this.emptyListMessage,
     this.onTaskTap,
     this.service,
+    this.initialValue,
+    this.initialDate,
   });
 
   @override
@@ -94,10 +98,11 @@ class _TaskListViewState extends State<TaskListView> {
     }
   }
 
-  Future<void> _handleAddTask(String taskName) async {
+  Future<void> _handleAddTask(String title, DateTime? date) async {
+    if (title.isEmpty) return;
     // Функция для обработки добавления новой задачи
     try {
-      final newTask = await widget.creator(taskName);
+      final newTask = await widget.creator(title, date);
       setState(() {
         _tasks.insert(0, newTask); // Добавляем новую задачу в начало списка
       });
@@ -141,7 +146,11 @@ class _TaskListViewState extends State<TaskListView> {
           Expanded(
             child: _buildBody(),
           ),
-          QuickAddTaskBar(onTaskSubmitted: _handleAddTask),
+          QuickAddTaskBar(
+            onTaskSubmitted: _handleAddTask,
+            initialValue: widget.initialValue,
+            initialDate: widget.initialDate,
+          ),
         ],
       ),
     );
