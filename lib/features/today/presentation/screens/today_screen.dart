@@ -31,6 +31,7 @@ class TodayScreen extends StatelessWidget {
       },
       emptyListMessage: 'На сегодня всё! Отличная работа!',
       onTaskTap: onTaskTap,
+      service: taskService,
     );
   }
 }

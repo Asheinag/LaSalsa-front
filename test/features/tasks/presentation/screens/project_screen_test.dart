@@ -73,4 +73,56 @@ void main() {
       ),
     ).called(1);
   });
+
+  testWidgets('ProjectDetailsScreen should display tasks on successful fetch',
+      (tester) async {
+    // ARRANGE
+    final fakeTasks = [
+      Task(
+          id: '1',
+          name: 'Project Task 1',
+          description: '',
+          status: 'TODO',
+          projectId: testProjectId),
+      Task(
+          id: '2',
+          name: 'Project Task 2',
+          description: '',
+          status: 'TODO',
+          projectId: testProjectId),
+    ];
+
+    when(
+      mockTaskService.getTasksByProject(projectId: testProjectId),
+    ).thenAnswer((_) async => fakeTasks);
+
+    // Mock the creator as well
+    when(
+      mockTaskService.createTask(
+          taskName: anyNamed('taskName'), projectId: anyNamed('projectId')),
+    ).thenAnswer(
+      (_) async => Task(
+          id: '3',
+          name: 'New',
+          description: '',
+          status: 'TODO',
+          projectId: testProjectId),
+    );
+
+    // ACT
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ProjectDetailsScreen(
+          project: testProject,
+          service: mockTaskService,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Project Task 1'), findsOneWidget);
+    expect(find.text('Project Task 2'), findsOneWidget);
+  });
 }
