@@ -33,9 +33,14 @@ class ProjectService {
   }
 
   // Создаем новый проект
-  Future<Project> createProject({required String name}) async {
+  Future<Project> createProject(
+      {required String name, String? colorId}) async {
     try {
-      final response = await _dio.post('/', data: {'name': name});
+      final Map<String, dynamic> data = {'name': name};
+      if (colorId != null) {
+        data['color_id'] = colorId;
+      }
+      final response = await _dio.post('/', data: data);
       return Project.fromJson(response.data);
     } on DioException catch (e) {
       logger.e('Ошибка Dio при создании проекта: ${e.response?.statusCode}');
