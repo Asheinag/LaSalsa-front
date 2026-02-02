@@ -4,7 +4,6 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
-import 'package:kabachok_lasalsa_front/core/theme/project_colors.dart';
 import 'package:kabachok_lasalsa_front/features/shell/presentation/widgets/app_sidebar.dart';
 
 @GenerateMocks([ProjectService])
@@ -19,15 +18,15 @@ void main() {
 
   testWidgets('AppSidebar creates project with selected color', (tester) async {
     // ARRANGE
-    when(mockProjectService.createProject(
-      name: anyNamed('name'),
-      colorId: anyNamed('colorId'),
-    )).thenAnswer((_) async => Project(
-          id: '1',
-          name: 'New Project',
-          status: 'ACTIVE',
-          colorId: '2',
-        ));
+    when(
+      mockProjectService.createProject(
+        name: anyNamed('name'),
+        colorId: anyNamed('colorId'),
+      ),
+    ).thenAnswer(
+      (_) async =>
+          Project(id: '1', name: 'New Project', status: 'ACTIVE', colorId: '2'),
+    );
 
     await tester.pumpWidget(
       MaterialApp(
@@ -41,7 +40,7 @@ void main() {
         ),
       ),
     );
-    
+
     // ACT
     await tester.tap(find.text('Создать проект'));
     await tester.pumpAndSettle();
@@ -50,15 +49,14 @@ void main() {
     expect(find.byType(DropdownButton<int>), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'My New Project');
-    
+
     // Submit
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
     // VERIFY
-    verify(mockProjectService.createProject(
-      name: 'My New Project',
-      colorId: '0',
-    )).called(1);
+    verify(
+      mockProjectService.createProject(name: 'My New Project', colorId: '0'),
+    ).called(1);
   });
 }
