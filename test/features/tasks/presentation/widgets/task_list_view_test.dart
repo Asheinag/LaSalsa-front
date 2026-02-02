@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/widgets/task_list_base.dart';
 import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/task_list_view.dart';
@@ -16,7 +17,7 @@ void main() {
         ];
       }
 
-      Future<Task> fakeCreator(String title) async {
+      Future<Task> fakeCreator(String title, DateTime? plannedAt) async {
         return Task(id: '2', name: title, description: '', status: 'TODO');
       }
 
@@ -45,7 +46,7 @@ void main() {
         return [];
       }
 
-      Future<Task> fakeCreator(String title) async {
+      Future<Task> fakeCreator(String title, DateTime? plannedAt) async {
         return Task(id: '2', name: title, description: '', status: 'TODO');
       }
 
@@ -67,6 +68,68 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.byType(TaskListBase), findsOneWidget);
       expect(find.text('No tasks available'), findsOneWidget);
+    });
+
+    testWidgets('Check error message on fetch failure',
+        (WidgetTester tester) async {
+      // ARRANGE: Наш загрузчик теперь просто бросает исключение
+      Future<List<Task>> fakeFetcher() async {
+        throw Exception('Failed to load');
+      }
+
+      Future<Task> fakeCreator(String title, DateTime? plannedAt) async {
+        return Task(id: '2', name: title, description: '', status: 'TODO');
+      }
+
+      // ACT
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TaskListView(
+            title: 'Test Task List',
+            fetcher: fakeFetcher,
+            creator: fakeCreator,
+            emptyListMessage: 'Empty',
+          ),
+        ),
+      );
+
+      // ASSERT: Сначала индикатор
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(TaskListBase), findsNothing);
+
+      // ACT: Ждем завершения
+      await tester.pumpAndSettle();
+
+      // ASSERT: Теперь - сообщение об ошибке
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(TaskListBase), findsNothing);
+      expect(find.text('Не удалось загрузить задачи.'), findsOneWidget);
+    });
+
+    testWidgets('Shows initial date in QuickAddTaskBar',
+        (WidgetTester tester) async {
+      // ARRANGE
+      Future<List<Task>> fakeFetcher() async => [];
+      Future<Task> fakeCreator(String title, DateTime? plannedAt) async =>
+          Task(id: '1', name: title, description: '', status: 'TODO');
+      final initialDate = DateTime(2025, 5, 10);
+
+      // ACT
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TaskListView(
+            title: 'Test Task List',
+            fetcher: fakeFetcher,
+            creator: fakeCreator,
+            emptyListMessage: 'Empty',
+            initialDate: initialDate,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // ASSERT
+      expect(find.text(DateFormat('dd.MM').format(initialDate)), findsOneWidget);
     });
   });
 }

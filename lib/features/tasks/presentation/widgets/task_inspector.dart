@@ -12,7 +12,8 @@ class TaskInspector extends StatefulWidget {
   final VoidCallback? onClose; // Кнопка закрыть (для мобилок или если надоело)
   final VoidCallback? onDelete; // Кнопка удалить (если нужно)
   final Future<void> Function(Task updatedTask)?
-  onTaskUpdated; // Коллбек на обновление задачи
+      onTaskUpdated; // Коллбек на обновление задачи
+  final TaskService? taskService;
 
   const TaskInspector({
     super.key,
@@ -21,6 +22,7 @@ class TaskInspector extends StatefulWidget {
     this.onClose,
     this.onDelete,
     this.onTaskUpdated,
+    this.taskService,
   });
 
   @override
@@ -34,7 +36,7 @@ class _TaskInspectorState extends State<TaskInspector> {
   Timer? _debounceTimer;
 
   bool _isSaving = false;
-  final TaskService _taskService = TaskService();
+  late final TaskService _taskService;
 
   Future<void> _performUpdate(Task updatedTask) async {
     if (widget.onTaskUpdated == null) return;
@@ -66,6 +68,7 @@ class _TaskInspectorState extends State<TaskInspector> {
   @override
   void initState() {
     super.initState();
+    _taskService = widget.taskService ?? TaskService();
     _getTaskDetails();
     _nameController = TextEditingController();
     _descriptionController = TextEditingController();
@@ -107,9 +110,11 @@ class _TaskInspectorState extends State<TaskInspector> {
     } catch (e) {
       // Ошибка загрузки деталей задачи
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Ошибка загрузки задачи: $e')));
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Ошибка загрузки задачи: $e')));
+        });
       }
     }
   }
@@ -193,9 +198,11 @@ class _TaskInspectorState extends State<TaskInspector> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Ошибка удаления задачи: $e')));
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Ошибка удаления задачи: $e')));
+        });
       }
     }
   }

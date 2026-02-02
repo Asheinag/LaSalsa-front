@@ -5,16 +5,17 @@ import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 import 'package:kabachok_lasalsa_front/core/theme/project_colors.dart';
 
 class AppSidebar extends StatefulWidget {
-  final List<Project> projects; // Список проектов
-  final Function(String pageId, {dynamic args})
-  onPageSelected; // Коллбэк при выборе страницы
-  final Function(Project newProject)?
-  onProjectCreated; // Коллбэк при создании нового проекта
+  final List<Project> projects;
+  final Function(String pageId, {dynamic args}) onPageSelected;
+  final Function(Project newProject)? onProjectCreated;
+  final ProjectService? projectService;
+
   const AppSidebar({
     super.key,
     required this.onPageSelected,
     required this.projects,
     this.onProjectCreated,
+    this.projectService,
   });
 
   @override
@@ -22,34 +23,39 @@ class AppSidebar extends StatefulWidget {
 }
 
 class _AppSidebarState extends State<AppSidebar> {
-  final ProjectService _projectService = ProjectService();
-  bool _isCreatingProject = false; // Флаг, показывающий поле ввода
-  final _newProjectController =
-      TextEditingController(); // Контроллер для создания нового проекта
+  late final ProjectService _projectService;
+  bool _isCreatingProject = false;
+  final _newProjectController = TextEditingController();
+  int _selectedColorId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _projectService = widget.projectService ?? ProjectService();
+  }
 
   Future<void> _submitNewProject() async {
     final name = _newProjectController.text.trim();
-    // Если имя пустое, просто выходим из режима создания
     if (name.isEmpty) {
       setState(() {
         _isCreatingProject = false;
       });
       _newProjectController.clear();
-      return; // Выходим из функции
+      return;
     }
 
-    // Если имя ЕСТЬ, сначала выполняем ВСЮ асинхронную работу
     try {
-      final newProject = await _projectService.createProject(name: name);
+      final newProject = await _projectService.createProject(
+        name: name,
+        colorId: _selectedColorId.toString(),
+      );
 
-      // И только ПОСЛЕ успешного await...
       if (mounted) {
-        // ...обновляем UI ОДНИМ вызовом setState
         setState(() {
-          _isCreatingProject = false; // 1. Прячем TextField
+          _isCreatingProject = false;
           widget.onProjectCreated?.call(
-            newProject,
-          ); // 2. Вызываем коллбэк с новым проектом
+            newProject.copyWith(colorId: _selectedColorId.toString()),
+          );
         });
       }
     } catch (e) {
@@ -58,15 +64,12 @@ class _AppSidebarState extends State<AppSidebar> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Ошибка создания проекта')),
         );
-        // Даже если ошибка, прячем поле
         setState(() {
           _isCreatingProject = false;
         });
       }
     }
-
-    // Очищаем контроллер в самом конце
-    _newProjectController.clear(); // Очищаем контроллер
+    _newProjectController.clear();
   }
 
   @override
@@ -120,7 +123,10 @@ class _AppSidebarState extends State<AppSidebar> {
                 'Создать проект',
                 style: TextStyle(color: Colors.blueGrey),
               ),
-              onTap: () => setState(() => _isCreatingProject = true),
+              onTap: () => setState(() {
+                _isCreatingProject = true;
+                _selectedColorId = 0; // Reset to default color
+              }),
             ),
 
             const Divider(),
@@ -131,31 +137,50 @@ class _AppSidebarState extends State<AppSidebar> {
                     ? projectsList.length + 1
                     : projectsList.length,
                 itemBuilder: (context, index) {
-                  // Если это "фальшивый" элемент
                   if (_isCreatingProject && index == projectsList.length) {
-                    return ListTile(
-                      leading: const Icon(
-                        Icons.circle,
-                        color: Colors.grey,
-                        size: 14,
-                      ),
-                      // Вместо Text показываем TextField
-                      title: TextField(
-                        controller: _newProjectController,
-                        autofocus: true,
-                        decoration: const InputDecoration(
-                          hintText: 'Название проекта',
-                          border: InputBorder.none,
-                        ),
-                        onSubmitted: (_) =>
-                            _submitNewProject(), // Отправка по Enter
-                        onTapOutside: (_) =>
-                            _submitNewProject(), // Отправка по клику в сторону
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Row(
+                        children: [
+                          DropdownButton<int>(
+                            value: _selectedColorId,
+                            underline: const SizedBox.shrink(),
+                            onChanged: (int? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  _selectedColorId = newValue;
+                                });
+                              }
+                            },
+                            items: List.generate(
+                              ProjectColorData.palette.length,
+                              (i) => DropdownMenuItem(
+                                value: i,
+                                child: Icon(
+                                  Icons.circle,
+                                  color: ProjectColorData.getColor(context, i),
+                                  size: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: TextField(
+                              controller: _newProjectController,
+                              autofocus: true,
+                              decoration: const InputDecoration(
+                                hintText: 'Название проекта',
+                                border: InputBorder.none,
+                              ),
+                              onSubmitted: (_) => _submitNewProject(),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }
 
-                  // В противном случае, это обычный элемент
                   final project = projectsList[index];
                   return ListTile(
                     leading: Icon(
@@ -168,7 +193,6 @@ class _AppSidebarState extends State<AppSidebar> {
                     ),
                     title: Text(project.name),
                     onTap: () {
-                      // ИЗМЕНЕНИЕ 4: Передаем ID 'project' и сам объект проекта в args
                       widget.onPageSelected('project', args: project);
                     },
                   );

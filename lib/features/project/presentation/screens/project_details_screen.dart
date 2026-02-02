@@ -26,10 +26,11 @@ class ProjectDetailsScreen extends StatelessWidget {
       key: ValueKey(project.id),
       title: project.name, // Используем имя проекта как заголовок
       fetcher: () => taskService.getTasksByProject(projectId: project.id),
-      creator: (title) =>
-          taskService.createTask(projectId: project.id, taskName: title),
+      creator: (title, plannedAt) => taskService.createTask(
+          projectId: project.id, taskName: title, plannedAt: plannedAt),
       emptyListMessage: "В этом проекте пока нет задач. Добавьте первую!",
       onTaskTap: onTaskTap,
+      service: taskService,
     );
   }
 }
