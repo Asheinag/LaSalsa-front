@@ -122,4 +122,66 @@ class MockTaskService extends _i1.Mock implements _i3.TaskService {
             returnValue: _i4.Future<List<_i2.Task>>.value(<_i2.Task>[]),
           )
           as _i4.Future<List<_i2.Task>>);
+
+  @override
+  _i4.Future<_i2.Task> updateTask({
+    required String? taskId,
+    String? name,
+    String? description,
+    String? status,
+    DateTime? plannedAt,
+    String? projectId,
+    String? parentId,
+    String? colorId,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateTask, [], {
+              #taskId: taskId,
+              #name: name,
+              #description: description,
+              #status: status,
+              #plannedAt: plannedAt,
+              #projectId: projectId,
+              #parentId: parentId,
+              #colorId: colorId,
+            }),
+            returnValue: _i4.Future<_i2.Task>.value(
+              _FakeTask_0(
+                this,
+                Invocation.method(#updateTask, [], {
+                  #taskId: taskId,
+                  #name: name,
+                  #description: description,
+                  #status: status,
+                  #plannedAt: plannedAt,
+                  #projectId: projectId,
+                  #parentId: parentId,
+                  #colorId: colorId,
+                }),
+              ),
+            ),
+          )
+          as _i4.Future<_i2.Task>);
+
+  @override
+  _i4.Future<_i2.Task> getTaskDetails({required String? taskId}) =>
+      (super.noSuchMethod(
+            Invocation.method(#getTaskDetails, [], {#taskId: taskId}),
+            returnValue: _i4.Future<_i2.Task>.value(
+              _FakeTask_0(
+                this,
+                Invocation.method(#getTaskDetails, [], {#taskId: taskId}),
+              ),
+            ),
+          )
+          as _i4.Future<_i2.Task>);
+
+  @override
+  _i4.Future<void> deleteTask({required String? taskId}) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteTask, [], {#taskId: taskId}),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 }

@@ -5,7 +5,7 @@ import 'package:mockito/mockito.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
-import 'package:kabachok_lasalsa_front/features/project/presentation/screens/project_details_scren.dart';
+import 'package:kabachok_lasalsa_front/features/project/presentation/screens/project_details_screen.dart';
 
 @GenerateMocks([TaskService])
 import 'project_screen_test.mocks.dart';
@@ -37,6 +37,7 @@ void main() {
       mockTaskService.createTask(
         taskName: anyNamed('taskName'),
         projectId: anyNamed('projectId'), // Важный параметр
+        plannedAt: anyNamed('plannedAt'),
       ),
     ).thenAnswer(
       (_) async => Task(
@@ -61,7 +62,7 @@ void main() {
 
     // 4. Действие пользователя
     await tester.enterText(find.byType(TextField), 'Задача в проект');
-    await tester.tap(find.byType(IconButton));
+    await tester.tap(find.byTooltip('Добавить задачу'));
     await tester.pumpAndSettle();
 
     // 5. Проверка
@@ -70,7 +71,67 @@ void main() {
         taskName: 'Задача в проект',
         projectId:
             testProjectId, // <--- Убеждаемся, что ID проекта улетел на бэкенд
+        plannedAt: null,
       ),
     ).called(1);
+  });
+
+  testWidgets('ProjectDetailsScreen should display tasks on successful fetch', (
+    tester,
+  ) async {
+    // ARRANGE
+    final fakeTasks = [
+      Task(
+        id: '1',
+        name: 'Project Task 1',
+        description: '',
+        status: 'TODO',
+        projectId: testProjectId,
+      ),
+      Task(
+        id: '2',
+        name: 'Project Task 2',
+        description: '',
+        status: 'TODO',
+        projectId: testProjectId,
+      ),
+    ];
+
+    when(
+      mockTaskService.getTasksByProject(projectId: testProjectId),
+    ).thenAnswer((_) async => fakeTasks);
+
+    // Mock the creator as well
+    when(
+      mockTaskService.createTask(
+        taskName: anyNamed('taskName'),
+        projectId: anyNamed('projectId'),
+        plannedAt: anyNamed('plannedAt'),
+      ),
+    ).thenAnswer(
+      (_) async => Task(
+        id: '3',
+        name: 'New',
+        description: '',
+        status: 'TODO',
+        projectId: testProjectId,
+      ),
+    );
+
+    // ACT
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ProjectDetailsScreen(
+          project: testProject,
+          service: mockTaskService,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Project Task 1'), findsOneWidget);
+    expect(find.text('Project Task 2'), findsOneWidget);
   });
 }
