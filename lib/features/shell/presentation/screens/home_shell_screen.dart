@@ -16,7 +16,10 @@ import 'package:kabachok_lasalsa_front/features/project/presentation/screens/pro
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 
 class HomeShellScreen extends StatefulWidget {
-  const HomeShellScreen({super.key});
+  final ProjectService? projectService;
+  final TaskService? taskService;
+
+  const HomeShellScreen({super.key, this.projectService, this.taskService});
 
   @override
   State<HomeShellScreen> createState() => _HomeShellScreenState();
@@ -28,14 +31,14 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   Task? _selectedTask; // Храним выбранную задачу для третьей колонки
   bool _isLoading = true; // Флаг загрузки проектов
   List<Project> _projects = []; // Список проектов
-  final ProjectService _projectService =
-      ProjectService(); // Сервис для работы с проектами
-  final TaskService _taskService =
-      TaskService(); // Сервис для работы с задачами
+  late final ProjectService _projectService;
+  late final TaskService _taskService;
 
   @override
   void initState() {
     super.initState();
+    _projectService = widget.projectService ?? ProjectService();
+    _taskService = widget.taskService ?? TaskService();
     _fetchProjects(); // Загружаем при старте приложения
   }
 
@@ -106,12 +109,14 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         logger.i('Построение экрана TodayScreen');
         return TodayScreen(
           onTaskTap: _handleTaskTap, // Подключаем тап!
+          service: _taskService,
         );
 
       case 'inbox':
         logger.i('Построение экрана InboxScreen');
         return InboxScreen(
           onTaskTap: _handleTaskTap, // Подключаем тап!
+          service: _taskService,
         );
 
       case 'project':
@@ -121,6 +126,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           return ProjectDetailsScreen(
             project: _currentPageArgs as Project,
             onTaskTap: _handleTaskTap, // Подключаем тап!
+            service: _taskService,
           );
         }
         return const Center(child: Text("Ошибка: Проект не выбран"));
@@ -152,6 +158,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                       _projects.add(newProject);
                     });
                   },
+                  projectService: _projectService,
                 ),
           const VerticalDivider(width: 1, thickness: 1),
 
@@ -170,6 +177,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                 onClose: () => setState(() => _selectedTask = null),
                 onDelete: () => setState(() => _selectedTask = null),
                 onTaskUpdated: _handleTaskUpdate,
+                taskService: _taskService,
               ),
             ),
           ],

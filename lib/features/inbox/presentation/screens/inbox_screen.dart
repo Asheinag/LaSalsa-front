@@ -5,7 +5,11 @@ import 'package:kabachok_lasalsa_front/core/models/task.dart';
 
 class InboxScreen extends StatelessWidget {
   final Function(Task)? onTaskTap;
-  const InboxScreen({super.key, this.onTaskTap});
+  final TaskService taskService;
+
+  InboxScreen({super.key, this.onTaskTap, TaskService? service})
+      : taskService = service ?? TaskService();
+
   @override
   Widget build(BuildContext context) {
     // То же самое, но с другими настройками
@@ -13,11 +17,12 @@ class InboxScreen extends StatelessWidget {
       key: const ValueKey('inbox_screen'),
       title: 'Входящие',
       // Передаем ДРУГУЮ функцию для загрузки
-      fetcher: () => TaskService().getTasks(offset: '0', limit: '20'),
+      fetcher: () => taskService.getTasks(offset: '0', limit: '20'),
       creator: (title, plannedAt) =>
-          TaskService().createTask(taskName: title, plannedAt: plannedAt),
+          taskService.createTask(taskName: title, plannedAt: plannedAt),
       emptyListMessage: 'Вообще нет задач! Вы сделали всё!',
       onTaskTap: onTaskTap,
+      service: taskService,
     );
   }
 }
