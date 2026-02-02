@@ -53,7 +53,9 @@ class _AppSidebarState extends State<AppSidebar> {
       if (mounted) {
         setState(() {
           _isCreatingProject = false;
-          widget.onProjectCreated?.call(newProject);
+          widget.onProjectCreated?.call(
+            newProject.copyWith(colorId: _selectedColorId.toString()),
+          );
         });
       }
     } catch (e) {
@@ -136,38 +138,45 @@ class _AppSidebarState extends State<AppSidebar> {
                     : projectsList.length,
                 itemBuilder: (context, index) {
                   if (_isCreatingProject && index == projectsList.length) {
-                    return ListTile(
-                      leading: DropdownButton<int>(
-                        value: _selectedColorId,
-                        underline: const SizedBox.shrink(),
-                        onChanged: (int? newValue) {
-                          if (newValue != null) {
-                            setState(() {
-                              _selectedColorId = newValue;
-                            });
-                          }
-                        },
-                        items: List.generate(
-                          ProjectColorData.palette.length,
-                          (i) => DropdownMenuItem(
-                            value: i,
-                            child: Icon(
-                              Icons.circle,
-                              color: ProjectColorData.getColor(context, i),
-                              size: 14,
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Row(
+                        children: [
+                          DropdownButton<int>(
+                            value: _selectedColorId,
+                            underline: const SizedBox.shrink(),
+                            onChanged: (int? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  _selectedColorId = newValue;
+                                });
+                              }
+                            },
+                            items: List.generate(
+                              ProjectColorData.palette.length,
+                              (i) => DropdownMenuItem(
+                                value: i,
+                                child: Icon(
+                                  Icons.circle,
+                                  color: ProjectColorData.getColor(context, i),
+                                  size: 14,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                      title: TextField(
-                        controller: _newProjectController,
-                        autofocus: true,
-                        decoration: const InputDecoration(
-                          hintText: 'Название проекта',
-                          border: InputBorder.none,
-                        ),
-                        onSubmitted: (_) => _submitNewProject(),
-                        onTapOutside: (_) => _submitNewProject(),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: TextField(
+                              controller: _newProjectController,
+                              autofocus: true,
+                              decoration: const InputDecoration(
+                                hintText: 'Название проекта',
+                                border: InputBorder.none,
+                              ),
+                              onSubmitted: (_) => _submitNewProject(),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }

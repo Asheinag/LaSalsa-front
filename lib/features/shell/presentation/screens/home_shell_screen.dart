@@ -11,7 +11,7 @@ import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 // Импорты экранов
 import 'package:kabachok_lasalsa_front/features/today/presentation/screens/today_screen.dart';
 import 'package:kabachok_lasalsa_front/features/inbox/presentation/screens/inbox_screen.dart';
-import 'package:kabachok_lasalsa_front/features/project/presentation/screens/project_details_scren.dart';
+import 'package:kabachok_lasalsa_front/features/project/presentation/screens/project_details_screen.dart';
 // Дебаг
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 

@@ -5,7 +5,7 @@ import 'package:mockito/mockito.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
-import 'package:kabachok_lasalsa_front/features/project/presentation/screens/project_details_scren.dart';
+import 'package:kabachok_lasalsa_front/features/project/presentation/screens/project_details_screen.dart';
 
 @GenerateMocks([TaskService])
 import 'project_screen_test.mocks.dart';
@@ -68,29 +68,33 @@ void main() {
     // 5. Проверка
     verify(
       mockTaskService.createTask(
-          taskName: 'Задача в проект',
-          projectId:
-              testProjectId, // <--- Убеждаемся, что ID проекта улетел на бэкенд
-          plannedAt: null),
+        taskName: 'Задача в проект',
+        projectId:
+            testProjectId, // <--- Убеждаемся, что ID проекта улетел на бэкенд
+        plannedAt: null,
+      ),
     ).called(1);
   });
 
-  testWidgets('ProjectDetailsScreen should display tasks on successful fetch',
-      (tester) async {
+  testWidgets('ProjectDetailsScreen should display tasks on successful fetch', (
+    tester,
+  ) async {
     // ARRANGE
     final fakeTasks = [
       Task(
-          id: '1',
-          name: 'Project Task 1',
-          description: '',
-          status: 'TODO',
-          projectId: testProjectId),
+        id: '1',
+        name: 'Project Task 1',
+        description: '',
+        status: 'TODO',
+        projectId: testProjectId,
+      ),
       Task(
-          id: '2',
-          name: 'Project Task 2',
-          description: '',
-          status: 'TODO',
-          projectId: testProjectId),
+        id: '2',
+        name: 'Project Task 2',
+        description: '',
+        status: 'TODO',
+        projectId: testProjectId,
+      ),
     ];
 
     when(
@@ -100,16 +104,18 @@ void main() {
     // Mock the creator as well
     when(
       mockTaskService.createTask(
-          taskName: anyNamed('taskName'),
-          projectId: anyNamed('projectId'),
-          plannedAt: anyNamed('plannedAt')),
+        taskName: anyNamed('taskName'),
+        projectId: anyNamed('projectId'),
+        plannedAt: anyNamed('plannedAt'),
+      ),
     ).thenAnswer(
       (_) async => Task(
-          id: '3',
-          name: 'New',
-          description: '',
-          status: 'TODO',
-          projectId: testProjectId),
+        id: '3',
+        name: 'New',
+        description: '',
+        status: 'TODO',
+        projectId: testProjectId,
+      ),
     );
 
     // ACT
