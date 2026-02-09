@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
-import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/task_inspector.dart';
+import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/task_detail_view.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:intl/intl.dart';
@@ -20,27 +20,29 @@ void main() {
     mockTaskService = MockTaskService();
   });
 
-  group('TaskInspector', () {
-    testWidgets('should display "select a task" message when no task is provided',
-        (WidgetTester tester) async {
-      // Arrange
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TaskInspector(
-              taskService: mockTaskService,
-            ),
+  group('TaskDetailView', () {
+    testWidgets(
+      'should display "select a task" message when no task is provided',
+      (WidgetTester tester) async {
+        // Arrange
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: TaskDetailView(taskService: mockTaskService)),
           ),
-        ),
-      );
+        );
 
-      // Assert
-      expect(find.text('Выберите задачу,\nчтобы увидеть детали'), findsOneWidget);
-      expect(find.byIcon(Icons.touch_app_outlined), findsOneWidget);
-    });
+        // Assert
+        expect(
+          find.text('Выберите задачу,\nчтобы увидеть детали'),
+          findsOneWidget,
+        );
+        expect(find.byIcon(Icons.touch_app_outlined), findsOneWidget);
+      },
+    );
 
-    testWidgets('should display task details when a task is provided',
-        (WidgetTester tester) async {
+    testWidgets('should display task details when a task is provided', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       final task = Task(
         id: '1',
@@ -65,13 +67,14 @@ void main() {
         colorId: '1',
       );
 
-      when(mockTaskService.getTaskDetails(taskId: '1'))
-          .thenAnswer((_) async => detailedTask);
+      when(
+        mockTaskService.getTaskDetails(taskId: '1'),
+      ).thenAnswer((_) async => detailedTask);
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TaskInspector(
+            body: TaskDetailView(
               task: task,
               projects: [project],
               taskService: mockTaskService,
@@ -90,8 +93,9 @@ void main() {
   });
 
   group('Interactions', () {
-    testWidgets('should call onTaskUpdated when name is changed',
-        (WidgetTester tester) async {
+    testWidgets('should call onTaskUpdated when name is changed', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       final task = Task(
         id: '1',
@@ -108,13 +112,14 @@ void main() {
       );
       Task? updatedTask;
 
-      when(mockTaskService.getTaskDetails(taskId: '1'))
-          .thenAnswer((_) async => task);
+      when(
+        mockTaskService.getTaskDetails(taskId: '1'),
+      ).thenAnswer((_) async => task);
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TaskInspector(
+            body: TaskDetailView(
               task: task,
               projects: [project],
               taskService: mockTaskService,
@@ -128,7 +133,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Act
-      await tester.enterText(find.widgetWithText(TextField, 'Test Task'), 'New Task Name');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Test Task'),
+        'New Task Name',
+      );
       await tester.pump(const Duration(seconds: 3));
 
       // Assert
@@ -136,8 +144,9 @@ void main() {
       expect(updatedTask?.name, 'New Task Name');
     });
 
-    testWidgets('should call onTaskUpdated when description is changed',
-        (WidgetTester tester) async {
+    testWidgets('should call onTaskUpdated when description is changed', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       final task = Task(
         id: '1',
@@ -154,13 +163,14 @@ void main() {
       );
       Task? updatedTask;
 
-      when(mockTaskService.getTaskDetails(taskId: '1'))
-          .thenAnswer((_) async => task);
+      when(
+        mockTaskService.getTaskDetails(taskId: '1'),
+      ).thenAnswer((_) async => task);
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TaskInspector(
+            body: TaskDetailView(
               task: task,
               projects: [project],
               taskService: mockTaskService,
@@ -174,7 +184,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Act
-      await tester.enterText(find.widgetWithText(TextField, 'Test Description'), 'New Description');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Test Description'),
+        'New Description',
+      );
       await tester.pump(const Duration(seconds: 3));
 
       // Assert
@@ -182,8 +195,9 @@ void main() {
       expect(updatedTask?.description, 'New Description');
     });
 
-    testWidgets('should call onTaskUpdated when project is changed',
-        (WidgetTester tester) async {
+    testWidgets('should call onTaskUpdated when project is changed', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       final task = Task(
         id: '1',
@@ -206,13 +220,14 @@ void main() {
       );
       Task? updatedTask;
 
-      when(mockTaskService.getTaskDetails(taskId: '1'))
-          .thenAnswer((_) async => task);
+      when(
+        mockTaskService.getTaskDetails(taskId: '1'),
+      ).thenAnswer((_) async => task);
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TaskInspector(
+            body: TaskDetailView(
               task: task,
               projects: [project1, project2],
               taskService: mockTaskService,
@@ -236,8 +251,9 @@ void main() {
       expect(updatedTask?.projectId, 'p-2');
     });
 
-    testWidgets('should call onDelete when delete button is pressed',
-        (WidgetTester tester) async {
+    testWidgets('should call onDelete when delete button is pressed', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       final task = Task(
         id: '1',
@@ -247,14 +263,15 @@ void main() {
       );
       bool onDeleteCalled = false;
 
-      when(mockTaskService.getTaskDetails(taskId: '1'))
-          .thenAnswer((_) async => task);
+      when(
+        mockTaskService.getTaskDetails(taskId: '1'),
+      ).thenAnswer((_) async => task);
       when(mockTaskService.deleteTask(taskId: '1')).thenAnswer((_) async {});
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TaskInspector(
+            body: TaskDetailView(
               task: task,
               taskService: mockTaskService,
               onDelete: () {
@@ -275,8 +292,9 @@ void main() {
       expect(onDeleteCalled, isTrue);
     });
 
-    testWidgets('should call onClose when close button is pressed',
-        (WidgetTester tester) async {
+    testWidgets('should call onClose when close button is pressed', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       final task = Task(
         id: '1',
@@ -286,13 +304,14 @@ void main() {
       );
       bool onCloseCalled = false;
 
-      when(mockTaskService.getTaskDetails(taskId: '1'))
-          .thenAnswer((_) async => task);
+      when(
+        mockTaskService.getTaskDetails(taskId: '1'),
+      ).thenAnswer((_) async => task);
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TaskInspector(
+            body: TaskDetailView(
               task: task,
               taskService: mockTaskService,
               onClose: () {
@@ -312,8 +331,9 @@ void main() {
       expect(onCloseCalled, isTrue);
     });
 
-    testWidgets('should display saving indicator during update',
-        (WidgetTester tester) async {
+    testWidgets('should display saving indicator during update', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       final completer = Completer<void>();
       final task = Task(
@@ -324,17 +344,26 @@ void main() {
         projectId: 'p-1',
       );
       final project1 = Project(
-          id: 'p-1', name: 'Project 1', status: 'ACTIVE', colorId: '1');
+        id: 'p-1',
+        name: 'Project 1',
+        status: 'ACTIVE',
+        colorId: '1',
+      );
       final project2 = Project(
-          id: 'p-2', name: 'Project 2', status: 'ACTIVE', colorId: '2');
+        id: 'p-2',
+        name: 'Project 2',
+        status: 'ACTIVE',
+        colorId: '2',
+      );
 
-      when(mockTaskService.getTaskDetails(taskId: '1'))
-          .thenAnswer((_) async => task);
+      when(
+        mockTaskService.getTaskDetails(taskId: '1'),
+      ).thenAnswer((_) async => task);
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TaskInspector(
+            body: TaskDetailView(
               task: task,
               projects: [project1, project2],
               taskService: mockTaskService,
@@ -365,7 +394,9 @@ void main() {
   });
 
   group('Date Display', () {
-    testWidgets('should display future date with correct style', (WidgetTester tester) async {
+    testWidgets('should display future date with correct style', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       final futureDate = DateTime.now().add(const Duration(days: 5));
       final task = Task(
@@ -376,24 +407,29 @@ void main() {
         plannedAt: futureDate,
       );
 
-      when(mockTaskService.getTaskDetails(taskId: '1')).thenAnswer((_) async => task);
+      when(
+        mockTaskService.getTaskDetails(taskId: '1'),
+      ).thenAnswer((_) async => task);
 
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: TaskInspector(
-            task: task,
-            taskService: mockTaskService,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TaskDetailView(task: task, taskService: mockTaskService),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Assert
-      final dateText = tester.widget<Text>(find.text(DateFormat('dd MMM yyyy').format(futureDate)));
+      final dateText = tester.widget<Text>(
+        find.text(DateFormat('dd MMM yyyy').format(futureDate)),
+      );
       expect(dateText.style?.color, equals(Colors.blueGrey[800]));
     });
 
-    testWidgets('should display overdue date with correct style', (WidgetTester tester) async {
+    testWidgets('should display overdue date with correct style', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       final pastDate = DateTime.now().subtract(const Duration(days: 5));
       final task = Task(
@@ -404,24 +440,29 @@ void main() {
         plannedAt: pastDate,
       );
 
-      when(mockTaskService.getTaskDetails(taskId: '1')).thenAnswer((_) async => task);
+      when(
+        mockTaskService.getTaskDetails(taskId: '1'),
+      ).thenAnswer((_) async => task);
 
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: TaskInspector(
-            task: task,
-            taskService: mockTaskService,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TaskDetailView(task: task, taskService: mockTaskService),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Assert
-      final dateText = tester.widget<Text>(find.text(DateFormat('dd MMM yyyy').format(pastDate)));
+      final dateText = tester.widget<Text>(
+        find.text(DateFormat('dd MMM yyyy').format(pastDate)),
+      );
       expect(dateText.style?.color, equals(Colors.deepOrange[700]));
     });
 
-    testWidgets('should display placeholder when date is null', (WidgetTester tester) async {
+    testWidgets('should display placeholder when date is null', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       final task = Task(
         id: '1',
@@ -431,24 +472,29 @@ void main() {
         plannedAt: null,
       );
 
-      when(mockTaskService.getTaskDetails(taskId: '1')).thenAnswer((_) async => task);
+      when(
+        mockTaskService.getTaskDetails(taskId: '1'),
+      ).thenAnswer((_) async => task);
 
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: TaskInspector(
-            task: task,
-            taskService: mockTaskService,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TaskDetailView(task: task, taskService: mockTaskService),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Assert
-      final placeholderText = tester.widget<Text>(find.text('Добавить плановую дату завершения'));
+      final placeholderText = tester.widget<Text>(
+        find.text('Добавить плановую дату завершения'),
+      );
       expect(placeholderText.style?.color, equals(Colors.grey));
     });
 
-    testWidgets('should display closed date when task is closed', (WidgetTester tester) async {
+    testWidgets('should display closed date when task is closed', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       final closedDate = DateTime.now().subtract(const Duration(days: 2));
       final task = Task(
@@ -459,41 +505,58 @@ void main() {
         closedAt: closedDate,
       );
 
-      when(mockTaskService.getTaskDetails(taskId: '1')).thenAnswer((_) async => task);
+      when(
+        mockTaskService.getTaskDetails(taskId: '1'),
+      ).thenAnswer((_) async => task);
 
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: TaskInspector(
-            task: task,
-            taskService: mockTaskService,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TaskDetailView(task: task, taskService: mockTaskService),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Assert
       expect(find.text('Завершено'), findsOneWidget);
-      expect(find.text(DateFormat('dd MMM yyyy, HH:mm').format(closedDate)), findsOneWidget);
+      expect(
+        find.text(DateFormat('dd MMM yyyy, HH:mm').format(closedDate)),
+        findsOneWidget,
+      );
     });
   });
 
   group('State & Edge Cases', () {
-    testWidgets('should update controllers and fetch details on task change', (WidgetTester tester) async {
+    testWidgets('should update controllers and fetch details on task change', (
+      WidgetTester tester,
+    ) async {
       // Arrange
-      final task1 = Task(id: '1', name: 'Task 1', description: 'Description 1', status: 'TODO');
-      final task2 = Task(id: '2', name: 'Task 2', description: 'Description 2', status: 'TODO');
-      
-      when(mockTaskService.getTaskDetails(taskId: '1')).thenAnswer((_) async => task1);
-      when(mockTaskService.getTaskDetails(taskId: '2')).thenAnswer((_) async => task2);
+      final task1 = Task(
+        id: '1',
+        name: 'Task 1',
+        description: 'Description 1',
+        status: 'TODO',
+      );
+      final task2 = Task(
+        id: '2',
+        name: 'Task 2',
+        description: 'Description 2',
+        status: 'TODO',
+      );
+
+      when(
+        mockTaskService.getTaskDetails(taskId: '1'),
+      ).thenAnswer((_) async => task1);
+      when(
+        mockTaskService.getTaskDetails(taskId: '2'),
+      ).thenAnswer((_) async => task2);
 
       // Initial build with Task 1
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TaskInspector(
-              task: task1,
-              taskService: mockTaskService,
-            ),
+            body: TaskDetailView(task: task1, taskService: mockTaskService),
           ),
         ),
       );
@@ -508,10 +571,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TaskInspector(
-              task: task2,
-              taskService: mockTaskService,
-            ),
+            body: TaskDetailView(task: task2, taskService: mockTaskService),
           ),
         ),
       );
@@ -523,19 +583,25 @@ void main() {
       verify(mockTaskService.getTaskDetails(taskId: '2')).called(1);
     });
 
-    testWidgets('should show snackbar on getTaskDetails error', (WidgetTester tester) async {
+    testWidgets('should show snackbar on getTaskDetails error', (
+      WidgetTester tester,
+    ) async {
       // Arrange
-      final task = Task(id: '1', name: 'Test Task', description: 'Test Description', status: 'TODO');
-      when(mockTaskService.getTaskDetails(taskId: '1')).thenThrow(Exception('Failed to load'));
+      final task = Task(
+        id: '1',
+        name: 'Test Task',
+        description: 'Test Description',
+        status: 'TODO',
+      );
+      when(
+        mockTaskService.getTaskDetails(taskId: '1'),
+      ).thenThrow(Exception('Failed to load'));
 
       // Act
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TaskInspector(
-              task: task,
-              taskService: mockTaskService,
-            ),
+            body: TaskDetailView(task: task, taskService: mockTaskService),
           ),
         ),
       );
@@ -543,19 +609,33 @@ void main() {
 
       // Assert
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('Ошибка загрузки задачи: Exception: Failed to load'), findsOneWidget);
+      expect(
+        find.text('Ошибка загрузки задачи: Exception: Failed to load'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('should show snackbar on deleteTask error', (WidgetTester tester) async {
+    testWidgets('should show snackbar on deleteTask error', (
+      WidgetTester tester,
+    ) async {
       // Arrange
-      final task = Task(id: '1', name: 'Test Task', description: 'Test Description', status: 'TODO');
-      when(mockTaskService.getTaskDetails(taskId: '1')).thenAnswer((_) async => task);
-      when(mockTaskService.deleteTask(taskId: '1')).thenThrow(Exception('Failed to delete'));
-      
+      final task = Task(
+        id: '1',
+        name: 'Test Task',
+        description: 'Test Description',
+        status: 'TODO',
+      );
+      when(
+        mockTaskService.getTaskDetails(taskId: '1'),
+      ).thenAnswer((_) async => task);
+      when(
+        mockTaskService.deleteTask(taskId: '1'),
+      ).thenThrow(Exception('Failed to delete'));
+
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TaskInspector(
+            body: TaskDetailView(
               task: task,
               taskService: mockTaskService,
               onDelete: () {},
@@ -571,32 +651,45 @@ void main() {
 
       // Assert
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('Ошибка удаления задачи: Exception: Failed to delete'), findsOneWidget);
+      expect(
+        find.text('Ошибка удаления задачи: Exception: Failed to delete'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('should not show close and delete buttons if callbacks are null', (WidgetTester tester) async {
-       // Arrange
-      final task = Task(id: '1', name: 'Test Task', description: 'Test Description', status: 'TODO');
-      when(mockTaskService.getTaskDetails(taskId: '1')).thenAnswer((_) async => task);
-      
-      // Act
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TaskInspector(
-              task: task,
-              taskService: mockTaskService,
-              onDelete: null,
-              onClose: null,
+    testWidgets(
+      'should not show close and delete buttons if callbacks are null',
+      (WidgetTester tester) async {
+        // Arrange
+        final task = Task(
+          id: '1',
+          name: 'Test Task',
+          description: 'Test Description',
+          status: 'TODO',
+        );
+        when(
+          mockTaskService.getTaskDetails(taskId: '1'),
+        ).thenAnswer((_) async => task);
+
+        // Act
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TaskDetailView(
+                task: task,
+                taskService: mockTaskService,
+                onDelete: null,
+                onClose: null,
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // Assert
-      expect(find.byIcon(Icons.delete), findsNothing);
-      expect(find.byIcon(Icons.close), findsNothing);
-    });
+        // Assert
+        expect(find.byIcon(Icons.delete), findsNothing);
+        expect(find.byIcon(Icons.close), findsNothing);
+      },
+    );
   });
 }

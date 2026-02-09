@@ -5,17 +5,19 @@ import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/core/theme/project_colors.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
+// Дебаг
+import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 
-class TaskInspector extends StatefulWidget {
+class TaskDetailView extends StatefulWidget {
   final Task? task;
   final List<Project> projects;
   final VoidCallback? onClose; // Кнопка закрыть (для мобилок или если надоело)
   final VoidCallback? onDelete; // Кнопка удалить (если нужно)
   final Future<void> Function(Task updatedTask)?
-      onTaskUpdated; // Коллбек на обновление задачи
+  onTaskUpdated; // Коллбек на обновление задачи
   final TaskService? taskService;
 
-  const TaskInspector({
+  const TaskDetailView({
     super.key,
     this.task,
     this.projects = const [],
@@ -26,10 +28,10 @@ class TaskInspector extends StatefulWidget {
   });
 
   @override
-  State<TaskInspector> createState() => _TaskInspectorState();
+  State<TaskDetailView> createState() => _TaskDetailViewState();
 }
 
-class _TaskInspectorState extends State<TaskInspector> {
+class _TaskDetailViewState extends State<TaskDetailView> {
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
 
@@ -78,7 +80,7 @@ class _TaskInspectorState extends State<TaskInspector> {
   // Если родитель передал новую задачу (пользователь кликнул на другую строку),
   // мы должны обновить текст в полях.
   @override
-  void didUpdateWidget(covariant TaskInspector oldWidget) {
+  void didUpdateWidget(covariant TaskDetailView oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Проверяем: если ID задачи изменился — значит пользователь выбрал другую задачу
     if (widget.task?.id != oldWidget.task?.id) {
@@ -94,6 +96,7 @@ class _TaskInspectorState extends State<TaskInspector> {
   }
 
   Future<void> _getTaskDetails() async {
+    logger.i('Get task details');
     if (widget.task == null) return;
     setState(() {});
     try {
@@ -103,6 +106,7 @@ class _TaskInspectorState extends State<TaskInspector> {
       if (mounted) {
         setState(() {
           // Обновляем контроллеры
+          logger.i('Update controllers');
           _nameController.text = detailedTask.name;
           _descriptionController.text = detailedTask.description;
         });

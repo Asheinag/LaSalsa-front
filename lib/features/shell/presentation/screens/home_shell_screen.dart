@@ -4,7 +4,7 @@ import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 // Импорты виджетов
 import 'package:kabachok_lasalsa_front/features/shell/presentation/widgets/app_sidebar.dart';
-import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/task_inspector.dart';
+import 'package:kabachok_lasalsa_front/features/shell/presentation/widgets/right_sidebar.dart';
 // Импорты сервисов
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
@@ -26,11 +26,16 @@ class HomeShellScreen extends StatefulWidget {
 }
 
 class _HomeShellScreenState extends State<HomeShellScreen> {
+  Task? _selectedTask; // Храним выбранную задачу для третьей колонки
+  Project? _selectedProject; // Храним выбранный проект для второй колонки
+
   String _selectedPageId = 'today'; // Задачем начальную страницу - Сегодня
   dynamic _currentPageArgs; // Храним аргументы (например, выбранный проект)
-  Task? _selectedTask; // Храним выбранную задачу для третьей колонки
-  bool _isLoading = true; // Флаг загрузки проектов
+
   List<Project> _projects = []; // Список проектов
+
+  bool _isLoading = true; // Флаг загрузки проектов
+
   late final ProjectService _projectService;
   late final TaskService _taskService;
 
@@ -97,6 +102,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
   // Метод обработки клика по задаче (вызывается из TodayScreen и др)
   void _handleTaskTap(Task task) {
+    logger.i('Выбрана задача: ${task.name}');
     setState(() {
       _selectedTask = task;
     });
@@ -123,6 +129,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         logger.i('Построение экрана ProjectDetailsScreen');
         // Достаем проект из аргументов
         if (_currentPageArgs is Project) {
+          _selectedProject = _currentPageArgs as Project;
           return ProjectDetailsScreen(
             project: _currentPageArgs as Project,
             onTaskTap: _handleTaskTap, // Подключаем тап!
@@ -171,13 +178,22 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
             const VerticalDivider(width: 1, thickness: 1),
             Expanded(
               flex: 2, // Занимает 3 части ширины (чуть уже списка)
-              child: TaskInspector(
-                task: _selectedTask,
-                projects: _projects,
-                onClose: () => setState(() => _selectedTask = null),
-                onDelete: () => setState(() => _selectedTask = null),
-                onTaskUpdated: _handleTaskUpdate,
-                taskService: _taskService,
+              child: RightSidebar(
+                selectedTask: _selectedTask,
+                selectedProject: _selectedProject,
+                onTaskUpdate: _handleTaskUpdate,
+                onClose: () {
+                  setState(() {
+                    _selectedTask = null;
+                    _selectedProject = null;
+                  });
+                },
+                onDelete: () {
+                  setState(() {
+                    _selectedTask = null;
+                    _selectedProject = null;
+                  });
+                },
               ),
             ),
           ],
