@@ -8,14 +8,12 @@ class ProjectService {
   final Dio _dio;
   static final String _url = '$apiBaseUrl/projects';
 
-  ProjectService({Dio? dio})
-      : _dio = dio ?? Dio(BaseOptions(baseUrl: _url)) {
+  ProjectService({Dio? dio}) : _dio = dio ?? Dio(BaseOptions(baseUrl: _url)) {
     if (dio == null) {
       _dio.interceptors.add(AuthInterceptor());
     }
   }
 
-  // Получаем список проектов для текущего пользователя
   Future<List<Project>> getProjects() async {
     try {
       final response = await _dio.get('/');
@@ -32,9 +30,7 @@ class ProjectService {
     }
   }
 
-  // Создаем новый проект
-  Future<Project> createProject(
-      {required String name, String? colorId}) async {
+  Future<Project> createProject({required String name, String? colorId}) async {
     try {
       final Map<String, dynamic> data = {'name': name};
       if (colorId != null) {
@@ -45,6 +41,15 @@ class ProjectService {
     } on DioException catch (e) {
       logger.e('Ошибка Dio при создании проекта: ${e.response?.statusCode}');
       throw Exception('Не удалось создать проект.');
+    }
+  }
+
+  Future<void> deleteProject({required String projectId}) async {
+    try {
+      await _dio.delete('/$projectId');
+    } on DioException catch (e) {
+      logger.e('Ошибка Dio при удалении проекта: ${e.response?.statusCode}');
+      throw Exception('Не удалось удалить проект.');
     }
   }
 }

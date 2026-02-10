@@ -5,14 +5,15 @@ import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/core/theme/project_colors.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
+import 'package:kabachok_lasalsa_front/injection_container.dart';
 // Дебаг
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 
 class TaskDetailView extends StatefulWidget {
   final Task? task;
   final List<Project> projects;
-  final VoidCallback? onClose; // Кнопка закрыть (для мобилок или если надоело)
-  final VoidCallback? onDelete; // Кнопка удалить (если нужно)
+  final VoidCallback? onClose;
+  final VoidCallback? onDelete;
   final Future<void> Function(Task updatedTask)?
   onTaskUpdated; // Коллбек на обновление задачи
   final TaskService? taskService;
@@ -70,10 +71,10 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   @override
   void initState() {
     super.initState();
-    _taskService = widget.taskService ?? TaskService();
-    _getTaskDetails();
+    _taskService = widget.taskService ?? getIt<TaskService>();
     _nameController = TextEditingController();
     _descriptionController = TextEditingController();
+    _getTaskDetails();
     _updateControllers();
   }
 

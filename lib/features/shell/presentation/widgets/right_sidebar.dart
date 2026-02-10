@@ -42,10 +42,11 @@ class RightSidebar extends StatelessWidget {
         task: selectedTask,
         projects: allProjects,
         onTaskUpdated: onTaskUpdate,
+        onDelete: onDelete,
       );
     } else if (selectedProject != null) {
       logger.i('SHOW PROJECT DETAIL VIEW');
-      content = ProjectDetailsView();
+      content = ProjectDetailsView(project: selectedProject);
     } else {
       content = BasicDetailView();
     }

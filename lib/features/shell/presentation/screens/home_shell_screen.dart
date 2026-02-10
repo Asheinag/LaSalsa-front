@@ -8,6 +8,7 @@ import 'package:kabachok_lasalsa_front/features/shell/presentation/widgets/right
 // Импорты сервисов
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
+import 'package:kabachok_lasalsa_front/injection_container.dart';
 // Импорты экранов
 import 'package:kabachok_lasalsa_front/features/today/presentation/screens/today_screen.dart';
 import 'package:kabachok_lasalsa_front/features/inbox/presentation/screens/inbox_screen.dart';
@@ -35,15 +36,14 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   List<Project> _projects = []; // Список проектов
 
   bool _isLoading = true; // Флаг загрузки проектов
-
   late final ProjectService _projectService;
   late final TaskService _taskService;
 
   @override
   void initState() {
     super.initState();
-    _projectService = widget.projectService ?? ProjectService();
-    _taskService = widget.taskService ?? TaskService();
+    _projectService = widget.projectService ?? getIt<ProjectService>();
+    _taskService = widget.taskService ?? getIt<TaskService>();
     _fetchProjects(); // Загружаем при старте приложения
   }
 
@@ -95,6 +95,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     setState(() {
       _selectedPageId = pageId;
       _currentPageArgs = args;
+      if (_currentPageArgs is Project) {
+        _selectedProject = _currentPageArgs as Project;
+      } else {
+        _selectedProject = null;
+      }
       _selectedTask = null; // Сбрасываем выбранную задачу при смене раздела
     });
     logger.i('Переключение на страницу: $pageId с аргументами: $args');
@@ -129,7 +134,6 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         logger.i('Построение экрана ProjectDetailsScreen');
         // Достаем проект из аргументов
         if (_currentPageArgs is Project) {
-          _selectedProject = _currentPageArgs as Project;
           return ProjectDetailsScreen(
             project: _currentPageArgs as Project,
             onTaskTap: _handleTaskTap, // Подключаем тап!
