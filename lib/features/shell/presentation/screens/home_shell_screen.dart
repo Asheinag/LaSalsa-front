@@ -90,6 +90,30 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     }
   }
 
+  Future<void> _handleProjectUpdate(Project updatedProject) async {
+    try {
+      setState(() {
+        _selectedProject = updatedProject;
+      });
+
+      await _projectService.updateProject(
+        projectId: updatedProject.id,
+        name: updatedProject.name,
+        description: updatedProject.description,
+        colorId: updatedProject.colorId,
+        deadline: updatedProject.deadline,
+        type: updatedProject.type,
+        status: updatedProject.status,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
+      }
+    }
+  }
+
   // Обработчик переключения страниц (приходит из Sidebar)
   void _onPageChanged(String pageId, {dynamic args}) {
     setState(() {
@@ -186,6 +210,8 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                 selectedTask: _selectedTask,
                 selectedProject: _selectedProject,
                 onTaskUpdate: _handleTaskUpdate,
+                onProjectUpdate: _handleProjectUpdate,
+                allProjects: _projects,
                 onClose: () {
                   setState(() {
                     _selectedTask = null;

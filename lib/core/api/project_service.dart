@@ -52,4 +52,40 @@ class ProjectService {
       throw Exception('Не удалось удалить проект.');
     }
   }
+
+  Future<void> updateProject({
+    required String projectId,
+    String? name,
+    String? description,
+    String? colorId,
+    DateTime? deadline,
+    String? status,
+    String? type,
+  }) async {
+    try {
+      final Map<String, dynamic> data = {};
+      if (name != null) {
+        data['name'] = name;
+      }
+      if (description != null) {
+        data['description'] = description;
+      }
+      if (colorId != null) {
+        data['color_id'] = colorId;
+      }
+      if (deadline != null) {
+        data['deadline'] = deadline.toIso8601String();
+      }
+      if (type != null) {
+        data['type'] = type;
+      }
+      if (status != null) {
+        data['status'] = status;
+      }
+      await _dio.patch('/$projectId', data: data);
+    } on DioException catch (e) {
+      logger.e('Ошибка Dio при обновлении проекта: ${e.response?.statusCode}');
+      throw Exception('Не удалось обновить проект.');
+    }
+  }
 }

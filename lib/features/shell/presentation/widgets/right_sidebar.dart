@@ -13,8 +13,8 @@ class RightSidebar extends StatelessWidget {
   final bool showBasicDetailView;
 
   final Future<void> Function(Task)? onTaskUpdate;
+  final Future<void> Function(Project)? onProjectUpdate;
 
-  final Function(Project)? onProjectUpdate;
   final List<Project> allProjects;
 
   final VoidCallback onClose;
@@ -35,6 +35,7 @@ class RightSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     logger.i('selected task is $selectedTask');
+    logger.i('All projects - ${allProjects.length}');
     Widget content;
     if (selectedTask != null) {
       logger.i('SHOW TASK DETAIL VIEW');
@@ -46,7 +47,11 @@ class RightSidebar extends StatelessWidget {
       );
     } else if (selectedProject != null) {
       logger.i('SHOW PROJECT DETAIL VIEW');
-      content = ProjectDetailsView(project: selectedProject);
+      content = ProjectDetailsView(
+        project: selectedProject,
+        onDelete: onDelete,
+        onProjectUpdated: onProjectUpdate,
+      );
     } else {
       content = BasicDetailView();
     }

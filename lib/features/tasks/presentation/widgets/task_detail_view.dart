@@ -14,8 +14,7 @@ class TaskDetailView extends StatefulWidget {
   final List<Project> projects;
   final VoidCallback? onClose;
   final VoidCallback? onDelete;
-  final Future<void> Function(Task updatedTask)?
-  onTaskUpdated; // Коллбек на обновление задачи
+  final Future<void> Function(Task updatedTask)? onTaskUpdated;
   final TaskService? taskService;
 
   const TaskDetailView({
@@ -98,6 +97,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
 
   Future<void> _getTaskDetails() async {
     logger.i('Get task details');
+    logger.i('Projects - ${widget.projects.length}');
     if (widget.task == null) return;
     setState(() {});
     try {
@@ -175,7 +175,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   }
 
   // Изменение даты (без таймера, сразу сохраняем)
-  Future<void> _changeDate(BuildContext context) async {
+  Future<void> _changePlannedDate(BuildContext context) async {
     if (widget.task == null) return;
 
     final picked = await showDatePicker(
@@ -214,28 +214,8 @@ class _TaskDetailViewState extends State<TaskDetailView> {
 
   @override
   Widget build(BuildContext context) {
-    // Состояние, когда задача не выбрана
-    if (widget.task == null) {
-      return Container(
-        color: Colors.grey[50],
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.touch_app_outlined, size: 64, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              Text(
-                'Выберите задачу,\nчтобы увидеть детали',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[500], fontSize: 16),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     // Находим текущий проект для Dropdown
+    logger.i('Current project id is ${widget.task!.projectId}');
     final currentProjectId = widget.task!.projectId;
 
     // Основная верстка деталей
@@ -334,7 +314,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
 
                 // 3. ДАТА (Интерактивная строка)
                 InkWell(
-                  onTap: () => _changeDate(context),
+                  onTap: () => _changePlannedDate(context),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: Row(
