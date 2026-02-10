@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 // Импорты моделей
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
@@ -38,6 +39,9 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   bool _isLoading = true; // Флаг загрузки проектов
   late final ProjectService _projectService;
   late final TaskService _taskService;
+  StreamSubscription<Project>? _projectSubscription;
+  StreamSubscription<String>? _projectDeleteSubscription;
+  StreamSubscription<String>? _taskDeleteSubscription;
 
   @override
   void initState() {
@@ -45,6 +49,55 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     _projectService = widget.projectService ?? getIt<ProjectService>();
     _taskService = widget.taskService ?? getIt<TaskService>();
     _fetchProjects(); // Загружаем при старте приложения
+    _projectSubscription = _projectService.projectUpdates.listen(
+      _onProjectUpdated,
+    );
+    _projectDeleteSubscription = _projectService.projectDeletions.listen(
+      _onProjectDeleted,
+    );
+    _taskDeleteSubscription = _taskService.taskDeletions.listen(_onTaskDeleted);
+  }
+
+  @override
+  void dispose() {
+    _projectSubscription?.cancel();
+    _projectDeleteSubscription?.cancel();
+    _taskDeleteSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _onProjectUpdated(Project updatedProject) {
+    if (!mounted) return;
+    setState(() {
+      final index = _projects.indexWhere((p) => p.id == updatedProject.id);
+      if (index != -1) {
+        _projects[index] = updatedProject;
+      }
+      if (_selectedProject?.id == updatedProject.id) {
+        _selectedProject = updatedProject;
+      }
+    });
+  }
+
+  void _onProjectDeleted(String projectId) {
+    if (!mounted) return;
+    setState(() {
+      _projects.removeWhere((p) => p.id == projectId);
+      if (_selectedProject?.id == projectId) {
+        _selectedProject = null;
+        _selectedPageId = 'inbox'; // Переключаемся на Inbox
+        _currentPageArgs = null;
+      }
+    });
+  }
+
+  void _onTaskDeleted(String taskId) {
+    if (!mounted) return;
+    setState(() {
+      if (_selectedTask?.id == taskId) {
+        _selectedTask = null;
+      }
+    });
   }
 
   // Метод загрузки проектов
@@ -179,6 +232,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
     return Scaffold(
       body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 1. Сайдбар
           _isLoading
@@ -204,27 +258,24 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           if (isDesktop) ...[
             // Показываем только на широком экране
             const VerticalDivider(width: 1, thickness: 1),
-            Expanded(
-              flex: 2, // Занимает 3 части ширины (чуть уже списка)
-              child: RightSidebar(
-                selectedTask: _selectedTask,
-                selectedProject: _selectedProject,
-                onTaskUpdate: _handleTaskUpdate,
-                onProjectUpdate: _handleProjectUpdate,
-                allProjects: _projects,
-                onClose: () {
-                  setState(() {
-                    _selectedTask = null;
-                    _selectedProject = null;
-                  });
-                },
-                onDelete: () {
-                  setState(() {
-                    _selectedTask = null;
-                    _selectedProject = null;
-                  });
-                },
-              ),
+            RightSidebar(
+              selectedTask: _selectedTask,
+              selectedProject: _selectedProject,
+              onTaskUpdate: _handleTaskUpdate,
+              onProjectUpdate: _handleProjectUpdate,
+              allProjects: _projects,
+              onClose: () {
+                setState(() {
+                  _selectedTask = null;
+                  _selectedProject = null;
+                });
+              },
+              onTaskDelete: () {
+                _onTaskDeleted(_selectedTask!.id);
+              },
+              onProjectDelete: () {
+                _onProjectDeleted(_selectedProject!.id);
+              },
             ),
           ],
         ],

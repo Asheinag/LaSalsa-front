@@ -18,7 +18,8 @@ class RightSidebar extends StatelessWidget {
   final List<Project> allProjects;
 
   final VoidCallback onClose;
-  final VoidCallback onDelete;
+  final VoidCallback onTaskDelete;
+  final VoidCallback onProjectDelete;
 
   const RightSidebar({
     super.key,
@@ -28,7 +29,8 @@ class RightSidebar extends StatelessWidget {
     this.onTaskUpdate,
     this.onProjectUpdate,
     required this.onClose,
-    required this.onDelete,
+    required this.onTaskDelete,
+    required this.onProjectDelete,
     this.allProjects = const [],
   });
 
@@ -43,13 +45,13 @@ class RightSidebar extends StatelessWidget {
         task: selectedTask,
         projects: allProjects,
         onTaskUpdated: onTaskUpdate,
-        onDelete: onDelete,
+        onDelete: onTaskDelete,
       );
     } else if (selectedProject != null) {
       logger.i('SHOW PROJECT DETAIL VIEW');
       content = ProjectDetailsView(
         project: selectedProject,
-        onDelete: onDelete,
+        onDelete: onProjectDelete,
         onProjectUpdated: onProjectUpdate,
       );
     } else {
@@ -57,7 +59,7 @@ class RightSidebar extends StatelessWidget {
     }
 
     return Container(
-      width: 400,
+      width: 550,
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(left: BorderSide(color: Colors.grey[300]!)),

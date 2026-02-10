@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
@@ -7,6 +8,12 @@ import 'package:kabachok_lasalsa_front/core/api/auth_interceptor.dart';
 class ProjectService {
   final Dio _dio;
   static final String _url = '$apiBaseUrl/projects';
+  // 1. Add the StreamController
+  final _projectUpdateController = StreamController<Project>.broadcast();
+  Stream<Project> get projectUpdates => _projectUpdateController.stream;
+
+  final _projectDeleteController = StreamController<String>.broadcast();
+  Stream<String> get projectDeletions => _projectDeleteController.stream;
 
   ProjectService({Dio? dio}) : _dio = dio ?? Dio(BaseOptions(baseUrl: _url)) {
     if (dio == null) {
@@ -37,7 +44,9 @@ class ProjectService {
         data['color_id'] = colorId;
       }
       final response = await _dio.post('/', data: data);
-      return Project.fromJson(response.data);
+      final project = Project.fromJson(response.data);
+      _projectUpdateController.add(project);
+      return project;
     } on DioException catch (e) {
       logger.e('Ошибка Dio при создании проекта: ${e.response?.statusCode}');
       throw Exception('Не удалось создать проект.');
@@ -47,13 +56,14 @@ class ProjectService {
   Future<void> deleteProject({required String projectId}) async {
     try {
       await _dio.delete('/$projectId');
+      _projectDeleteController.add(projectId);
     } on DioException catch (e) {
       logger.e('Ошибка Dio при удалении проекта: ${e.response?.statusCode}');
       throw Exception('Не удалось удалить проект.');
     }
   }
 
-  Future<void> updateProject({
+  Future<Project> updateProject({
     required String projectId,
     String? name,
     String? description,
@@ -82,10 +92,18 @@ class ProjectService {
       if (status != null) {
         data['status'] = status;
       }
-      await _dio.patch('/$projectId', data: data);
+      final response = await _dio.patch('/$projectId', data: data);
+      final updatedProject = Project.fromJson(response.data);
+      _projectUpdateController.add(updatedProject);
+      return updatedProject;
     } on DioException catch (e) {
       logger.e('Ошибка Dio при обновлении проекта: ${e.response?.statusCode}');
       throw Exception('Не удалось обновить проект.');
     }
+  }
+
+  void dispose() {
+    _projectUpdateController.close();
+    _projectDeleteController.close();
   }
 }
