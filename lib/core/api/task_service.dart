@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
@@ -7,6 +8,12 @@ import 'package:kabachok_lasalsa_front/core/api/auth_interceptor.dart';
 class TaskService {
   final Dio _dio;
   static final String _url = apiBaseUrl;
+
+  final _taskUpdateController = StreamController<Task>.broadcast();
+  Stream<Task> get taskUpdates => _taskUpdateController.stream;
+
+  final _taskDeleteController = StreamController<String>.broadcast();
+  Stream<String> get taskDeletions => _taskDeleteController.stream;
 
   TaskService({Dio? dio}) : _dio = dio ?? Dio(BaseOptions(baseUrl: _url)) {
     if (dio == null) {
@@ -44,7 +51,9 @@ class TaskService {
         '/tasks/$taskId',
         data: {'status': taskStatus},
       );
-      return Task.fromJson(response.data);
+      final task = Task.fromJson(response.data);
+      _taskUpdateController.add(task);
+      return task;
     } on DioException catch (e) {
       logger.e(
         'Ошибка Dio при обновлении статуса задачи: ${e.response?.statusCode}',
@@ -59,7 +68,7 @@ class TaskService {
   }) async {
     await Future.delayed(const Duration(seconds: 1));
     try {
-      final response = await _dio.get('/tasks');
+      final response = await _dio.get('/tasks/?offset=$offset&limit=$limit');
       final List<dynamic> jsonData = response.data;
 
       return jsonData.map((taskJson) => Task.fromJson(taskJson)).toList();
@@ -101,9 +110,11 @@ class TaskService {
       }
 
       // 3. Отправляем запрос
-      final response = await _dio.post('/tasks', data: requestData);
+      final response = await _dio.post('/tasks/', data: requestData);
 
-      return Task.fromJson(response.data);
+      final task = Task.fromJson(response.data);
+      _taskUpdateController.add(task);
+      return task;
     } on DioException catch (e) {
       logger.e('Ошибка Dio при создании задачи: ${e.response?.statusCode}');
       throw Exception('Не удалось создать задачу.');
@@ -152,7 +163,9 @@ class TaskService {
 
       final response = await _dio.patch('/tasks/$taskId', data: requestData);
 
-      return Task.fromJson(response.data);
+      final task = Task.fromJson(response.data);
+      _taskUpdateController.add(task);
+      return task;
     } on DioException catch (e) {
       logger.e('Ошибка Dio при обновлении задачи: ${e.response?.statusCode}');
       throw Exception('Не удалось обновить задачу.');
@@ -176,9 +189,15 @@ class TaskService {
   Future<void> deleteTask({required String taskId}) async {
     try {
       await _dio.delete('/tasks/$taskId');
+      _taskDeleteController.add(taskId);
     } on DioException catch (e) {
       logger.e('Ошибка Dio при удалении задачи: ${e.response?.statusCode}');
       throw Exception('Не удалось удалить задачу.');
     }
+  }
+
+  void dispose() {
+    _taskUpdateController.close();
+    _taskDeleteController.close();
   }
 }

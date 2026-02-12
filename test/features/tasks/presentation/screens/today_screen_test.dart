@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
@@ -16,6 +17,8 @@ void main() {
 
   setUp(() {
     mockTaskService = MockTaskService();
+    when(mockTaskService.taskUpdates).thenAnswer((_) => const Stream.empty());
+    when(mockTaskService.taskDeletions).thenAnswer((_) => const Stream.empty());
   });
 
   testWidgets('TodayScreen adds task with current date', (tester) async {
@@ -33,7 +36,8 @@ void main() {
         plannedAt: anyNamed('plannedAt'),
       ),
     ).thenAnswer(
-      (_) async => Task(id: '123', name: 'New Task', description: '', status: 'TODO'),
+      (_) async =>
+          Task(id: '123', name: 'New Task', description: '', status: 'TODO'),
     );
 
     // 2. Рендерим экран
@@ -56,20 +60,25 @@ void main() {
       mockTaskService.createTask(
         taskName: 'Купить молоко',
         plannedAt: argThat(
-          isA<DateTime>().having((date) {
-            final now = DateTime.now();
-            return date.year == now.year &&
-                date.month == now.month &&
-                date.day == now.day;
-          }, 'isToday', true),
+          isA<DateTime>().having(
+            (date) {
+              final now = DateTime.now();
+              return date.year == now.year &&
+                  date.month == now.month &&
+                  date.day == now.day;
+            },
+            'isToday',
+            true,
+          ),
           named: 'plannedAt',
         ),
       ),
     ).called(1);
   });
 
-  testWidgets('TodayScreen should display tasks on successful fetch',
-      (tester) async {
+  testWidgets('TodayScreen should display tasks on successful fetch', (
+    tester,
+  ) async {
     // ARRANGE
     final fakeTasks = [
       Task(id: '1', name: 'Task 1', description: '', status: 'TODO'),
@@ -83,10 +92,14 @@ void main() {
       ),
     ).thenAnswer((_) async => fakeTasks);
 
-    when(mockTaskService.createTask(
-            taskName: anyNamed('taskName'), plannedAt: anyNamed('plannedAt')))
-        .thenAnswer((_) async =>
-            Task(id: '3', name: 'New', description: '', status: 'TODO'));
+    when(
+      mockTaskService.createTask(
+        taskName: anyNamed('taskName'),
+        plannedAt: anyNamed('plannedAt'),
+      ),
+    ).thenAnswer(
+      (_) async => Task(id: '3', name: 'New', description: '', status: 'TODO'),
+    );
 
     // ACT
     await tester.pumpWidget(
@@ -100,26 +113,42 @@ void main() {
     expect(find.text('Task 2'), findsOneWidget);
   });
 
-  testWidgets('should call update service when a task is checked',
-      (tester) async {
+  testWidgets('should call update service when a task is checked', (
+    tester,
+  ) async {
     // ARRANGE
-    final initialTask =
-        Task(id: '1', name: 'Task to be done', description: '', status: 'TODO');
-    final updatedTask =
-        Task(id: '1', name: 'Task to be done', description: '', status: 'DONE');
+    final initialTask = Task(
+      id: '1',
+      name: 'Task to be done',
+      description: '',
+      status: 'TODO',
+    );
+    final updatedTask = Task(
+      id: '1',
+      name: 'Task to be done',
+      description: '',
+      status: 'DONE',
+    );
 
-    when(mockTaskService.getTodayTasks(
-            offset: anyNamed('offset'), limit: anyNamed('limit')))
-        .thenAnswer((_) async => [initialTask]);
+    when(
+      mockTaskService.getTodayTasks(
+        offset: anyNamed('offset'),
+        limit: anyNamed('limit'),
+      ),
+    ).thenAnswer((_) async => [initialTask]);
 
-    when(mockTaskService.updateTaskStatus(
-            taskId: '1', taskStatus: 'DONE'))
-        .thenAnswer((_) async => updatedTask);
+    when(
+      mockTaskService.updateTaskStatus(taskId: '1', taskStatus: 'DONE'),
+    ).thenAnswer((_) async => updatedTask);
 
-    when(mockTaskService.createTask(
-            taskName: anyNamed('taskName'), plannedAt: anyNamed('plannedAt')))
-        .thenAnswer((_) async =>
-            Task(id: '3', name: 'New', description: '', status: 'TODO'));
+    when(
+      mockTaskService.createTask(
+        taskName: anyNamed('taskName'),
+        plannedAt: anyNamed('plannedAt'),
+      ),
+    ).thenAnswer(
+      (_) async => Task(id: '3', name: 'New', description: '', status: 'TODO'),
+    );
 
     // ACT
     await tester.pumpWidget(
@@ -138,7 +167,61 @@ void main() {
     await tester.pumpAndSettle();
 
     // ASSERT
-    verify(mockTaskService.updateTaskStatus(taskId: '1', taskStatus: 'DONE'))
-        .called(1);
+    verify(
+      mockTaskService.updateTaskStatus(taskId: '1', taskStatus: 'DONE'),
+    ).called(1);
   });
+
+  testWidgets(
+    'should remove task from list if planned date changes to different day',
+    (tester) async {
+      // ARRANGE
+      final streamController = StreamController<Task>.broadcast();
+      when(
+        mockTaskService.taskUpdates,
+      ).thenAnswer((_) => streamController.stream);
+
+      final today = DateTime.now();
+      final tomorrow = today.add(const Duration(days: 1));
+
+      final task = Task(
+        id: '1',
+        name: 'Task 1',
+        description: '',
+        status: 'TODO',
+        plannedAt: today,
+      );
+      final updatedTask = Task(
+        id: '1',
+        name: 'Task 1',
+        description: '',
+        status: 'TODO',
+        plannedAt: tomorrow,
+      );
+
+      when(
+        mockTaskService.getTodayTasks(
+          offset: anyNamed('offset'),
+          limit: anyNamed('limit'),
+        ),
+      ).thenAnswer((_) async => [task]);
+
+      // ACT
+      await tester.pumpWidget(
+        MaterialApp(home: TodayScreen(service: mockTaskService)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Task 1'), findsOneWidget);
+
+      // Emit update
+      streamController.add(updatedTask);
+      await tester.pumpAndSettle();
+
+      // ASSERT
+      expect(find.text('Task 1'), findsNothing);
+
+      streamController.close();
+    },
+  );
 }

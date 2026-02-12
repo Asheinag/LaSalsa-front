@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
@@ -19,60 +20,87 @@ void main() {
   setUp(() {
     mockProjectService = MockProjectService();
     mockTaskService = MockTaskService();
+    when(
+      mockProjectService.projectUpdates,
+    ).thenAnswer((_) => const Stream.empty());
+    when(
+      mockProjectService.projectDeletions,
+    ).thenAnswer((_) => const Stream.empty());
+    when(mockTaskService.taskUpdates).thenAnswer((_) => const Stream.empty());
+    when(mockTaskService.taskDeletions).thenAnswer((_) => const Stream.empty());
   });
 
-  testWidgets('Create project, add task, and verify project color in inspector',
-      (WidgetTester tester) async {
+  testWidgets('Create project, add task, and verify project color in inspector', (
+    WidgetTester tester,
+  ) async {
     // Arrange
     final projectName = 'Test Project';
     final taskName = 'Test Task';
     final projectColorId = '2';
     final project = Project(
-        id: '1', name: projectName, status: 'ACTIVE', colorId: projectColorId);
+      id: '1',
+      name: projectName,
+      status: 'ACTIVE',
+      colorId: projectColorId,
+    );
     final task = Task(
-        id: '101',
-        name: taskName,
-        projectId: '1',
-        description: '',
-        status: 'ACTIVE');
+      id: '101',
+      name: taskName,
+      projectId: '1',
+      description: '',
+      status: 'ACTIVE',
+    );
 
     // Mock API calls
-    when(mockTaskService.getTodayTasks(offset: '0', limit: '20'))
-        .thenAnswer((_) async => []);
-    when(mockTaskService.getTasks(offset: '0', limit: '20'))
-        .thenAnswer((_) async => []);
+    when(
+      mockTaskService.getTodayTasks(offset: '0', limit: '20'),
+    ).thenAnswer((_) async => []);
+    when(
+      mockTaskService.getTasks(offset: '0', limit: '20'),
+    ).thenAnswer((_) async => []);
     when(mockProjectService.getProjects()).thenAnswer((_) async => []);
-    when(mockProjectService.createProject(
-            name: projectName, colorId: projectColorId))
-        .thenAnswer((_) async => project);
-    when(mockTaskService.getTasksByProject(projectId: '1'))
-        .thenAnswer((_) async => [task]);
-    when(mockTaskService.createTask(
-            taskName: anyNamed('taskName'),
-            projectId: anyNamed('projectId'),
-            plannedAt: anyNamed('plannedAt'),
-            description: anyNamed('description'),
-            parentId: anyNamed('parentId')))
-        .thenAnswer((_) async => task);
+    when(
+      mockProjectService.createProject(
+        name: projectName,
+        colorId: projectColorId,
+      ),
+    ).thenAnswer((_) async => project);
+    when(
+      mockTaskService.getTasksByProject(projectId: '1'),
+    ).thenAnswer((_) async => [task]);
+    when(
+      mockTaskService.createTask(
+        taskName: anyNamed('taskName'),
+        projectId: anyNamed('projectId'),
+        plannedAt: anyNamed('plannedAt'),
+        description: anyNamed('description'),
+        parentId: anyNamed('parentId'),
+      ),
+    ).thenAnswer((_) async => task);
 
     // Build our app and trigger a frame.
-    await tester.pumpWidget(MaterialApp(
-      home: RepaintBoundary(
-        child: HomeShellScreen(
-          projectService: mockProjectService,
-          taskService: mockTaskService,
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RepaintBoundary(
+          child: HomeShellScreen(
+            projectService: mockProjectService,
+            taskService: mockTaskService,
+          ),
         ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
 
     // 1. Create a project with a specific color
     await tester.tap(find.text('Создать проект'));
     await tester.pumpAndSettle();
     await tester.enterText(
-        find.descendant(
-            of: find.byType(AppSidebar), matching: find.byType(TextField)),
-        projectName);
+      find.descendant(
+        of: find.byType(AppSidebar),
+        matching: find.byType(TextField),
+      ),
+      projectName,
+    );
     await tester.tap(find.byType(DropdownButton<int>));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.circle).at(2));
@@ -102,4 +130,3 @@ void main() {
     expect(find.text(projectName), findsWidgets);
   });
 }
-

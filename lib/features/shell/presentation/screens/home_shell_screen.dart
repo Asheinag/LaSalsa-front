@@ -1,13 +1,15 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 // Импорты моделей
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 // Импорты виджетов
 import 'package:kabachok_lasalsa_front/features/shell/presentation/widgets/app_sidebar.dart';
-import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/task_inspector.dart';
+import 'package:kabachok_lasalsa_front/features/shell/presentation/widgets/right_sidebar.dart';
 // Импорты сервисов
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
+import 'package:kabachok_lasalsa_front/injection_container.dart';
 // Импорты экранов
 import 'package:kabachok_lasalsa_front/features/today/presentation/screens/today_screen.dart';
 import 'package:kabachok_lasalsa_front/features/inbox/presentation/screens/inbox_screen.dart';
@@ -26,20 +28,76 @@ class HomeShellScreen extends StatefulWidget {
 }
 
 class _HomeShellScreenState extends State<HomeShellScreen> {
+  Task? _selectedTask; // Храним выбранную задачу для третьей колонки
+  Project? _selectedProject; // Храним выбранный проект для второй колонки
+
   String _selectedPageId = 'today'; // Задачем начальную страницу - Сегодня
   dynamic _currentPageArgs; // Храним аргументы (например, выбранный проект)
-  Task? _selectedTask; // Храним выбранную задачу для третьей колонки
-  bool _isLoading = true; // Флаг загрузки проектов
+
   List<Project> _projects = []; // Список проектов
+
+  bool _isLoading = true; // Флаг загрузки проектов
   late final ProjectService _projectService;
   late final TaskService _taskService;
+  StreamSubscription<Project>? _projectSubscription;
+  StreamSubscription<String>? _projectDeleteSubscription;
+  StreamSubscription<String>? _taskDeleteSubscription;
 
   @override
   void initState() {
     super.initState();
-    _projectService = widget.projectService ?? ProjectService();
-    _taskService = widget.taskService ?? TaskService();
+    _projectService = widget.projectService ?? getIt<ProjectService>();
+    _taskService = widget.taskService ?? getIt<TaskService>();
     _fetchProjects(); // Загружаем при старте приложения
+    _projectSubscription = _projectService.projectUpdates.listen(
+      _onProjectUpdated,
+    );
+    _projectDeleteSubscription = _projectService.projectDeletions.listen(
+      _onProjectDeleted,
+    );
+    _taskDeleteSubscription = _taskService.taskDeletions.listen(_onTaskDeleted);
+  }
+
+  @override
+  void dispose() {
+    _projectSubscription?.cancel();
+    _projectDeleteSubscription?.cancel();
+    _taskDeleteSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _onProjectUpdated(Project updatedProject) {
+    if (!mounted) return;
+    setState(() {
+      final index = _projects.indexWhere((p) => p.id == updatedProject.id);
+      if (index != -1) {
+        _projects[index] = updatedProject;
+      }
+      if (_selectedProject?.id == updatedProject.id) {
+        _selectedProject = updatedProject;
+      }
+    });
+  }
+
+  void _onProjectDeleted(String projectId) {
+    if (!mounted) return;
+    setState(() {
+      _projects.removeWhere((p) => p.id == projectId);
+      if (_selectedProject?.id == projectId) {
+        _selectedProject = null;
+        _selectedPageId = 'inbox'; // Переключаемся на Inbox
+        _currentPageArgs = null;
+      }
+    });
+  }
+
+  void _onTaskDeleted(String taskId) {
+    if (!mounted) return;
+    setState(() {
+      if (_selectedTask?.id == taskId) {
+        _selectedTask = null;
+      }
+    });
   }
 
   // Метод загрузки проектов
@@ -75,6 +133,31 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         description: updatedTask.description,
         projectId: updatedTask.projectId,
         plannedAt: updatedTask.plannedAt,
+        status: updatedTask.status,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
+      }
+    }
+  }
+
+  Future<void> _handleProjectUpdate(Project updatedProject) async {
+    try {
+      setState(() {
+        _selectedProject = updatedProject;
+      });
+
+      await _projectService.updateProject(
+        projectId: updatedProject.id,
+        name: updatedProject.name,
+        description: updatedProject.description,
+        colorId: updatedProject.colorId,
+        deadline: updatedProject.deadline,
+        type: updatedProject.type,
+        status: updatedProject.status,
       );
     } catch (e) {
       if (mounted) {
@@ -90,6 +173,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     setState(() {
       _selectedPageId = pageId;
       _currentPageArgs = args;
+      if (_currentPageArgs is Project) {
+        _selectedProject = _currentPageArgs as Project;
+      } else {
+        _selectedProject = null;
+      }
       _selectedTask = null; // Сбрасываем выбранную задачу при смене раздела
     });
     logger.i('Переключение на страницу: $pageId с аргументами: $args');
@@ -97,6 +185,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
   // Метод обработки клика по задаче (вызывается из TodayScreen и др)
   void _handleTaskTap(Task task) {
+    logger.i('Выбрана задача: ${task.name}');
     setState(() {
       _selectedTask = task;
     });
@@ -144,6 +233,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
     return Scaffold(
       body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 1. Сайдбар
           _isLoading
@@ -169,16 +259,24 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           if (isDesktop) ...[
             // Показываем только на широком экране
             const VerticalDivider(width: 1, thickness: 1),
-            Expanded(
-              flex: 2, // Занимает 3 части ширины (чуть уже списка)
-              child: TaskInspector(
-                task: _selectedTask,
-                projects: _projects,
-                onClose: () => setState(() => _selectedTask = null),
-                onDelete: () => setState(() => _selectedTask = null),
-                onTaskUpdated: _handleTaskUpdate,
-                taskService: _taskService,
-              ),
+            RightSidebar(
+              selectedTask: _selectedTask,
+              selectedProject: _selectedProject,
+              onTaskUpdate: _handleTaskUpdate,
+              onProjectUpdate: _handleProjectUpdate,
+              allProjects: _projects,
+              onClose: () {
+                setState(() {
+                  _selectedTask = null;
+                  _selectedProject = null;
+                });
+              },
+              onTaskDelete: () {
+                _onTaskDeleted(_selectedTask!.id);
+              },
+              onProjectDelete: () {
+                _onProjectDeleted(_selectedProject!.id);
+              },
             ),
           ],
         ],

@@ -38,6 +38,22 @@ class MockProjectService extends _i1.Mock implements _i3.ProjectService {
   }
 
   @override
+  _i4.Stream<_i2.Project> get projectUpdates =>
+      (super.noSuchMethod(
+            Invocation.getter(#projectUpdates),
+            returnValue: _i4.Stream<_i2.Project>.empty(),
+          )
+          as _i4.Stream<_i2.Project>);
+
+  @override
+  _i4.Stream<String> get projectDeletions =>
+      (super.noSuchMethod(
+            Invocation.getter(#projectDeletions),
+            returnValue: _i4.Stream<String>.empty(),
+          )
+          as _i4.Stream<String>);
+
+  @override
   _i4.Future<List<_i2.Project>> getProjects() =>
       (super.noSuchMethod(
             Invocation.method(#getProjects, []),
@@ -66,4 +82,56 @@ class MockProjectService extends _i1.Mock implements _i3.ProjectService {
             ),
           )
           as _i4.Future<_i2.Project>);
+
+  @override
+  _i4.Future<void> deleteProject({required String? projectId}) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteProject, [], {#projectId: projectId}),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<_i2.Project> updateProject({
+    required String? projectId,
+    String? name,
+    String? description,
+    String? colorId,
+    DateTime? deadline,
+    String? status,
+    String? type,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateProject, [], {
+              #projectId: projectId,
+              #name: name,
+              #description: description,
+              #colorId: colorId,
+              #deadline: deadline,
+              #status: status,
+              #type: type,
+            }),
+            returnValue: _i4.Future<_i2.Project>.value(
+              _FakeProject_0(
+                this,
+                Invocation.method(#updateProject, [], {
+                  #projectId: projectId,
+                  #name: name,
+                  #description: description,
+                  #colorId: colorId,
+                  #deadline: deadline,
+                  #status: status,
+                  #type: type,
+                }),
+              ),
+            ),
+          )
+          as _i4.Future<_i2.Project>);
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 }
