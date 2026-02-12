@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
@@ -22,6 +23,8 @@ void main() {
 
   setUp(() {
     mockTaskService = MockTaskService();
+    when(mockTaskService.taskUpdates).thenAnswer((_) => Stream.empty());
+    when(mockTaskService.taskDeletions).thenAnswer((_) => Stream.empty());
   });
 
   testWidgets('ProjectScreen adds task with correct Project ID', (

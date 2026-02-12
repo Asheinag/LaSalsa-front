@@ -45,6 +45,22 @@ class MockProjectService extends _i1.Mock implements _i4.ProjectService {
   }
 
   @override
+  _i5.Stream<_i2.Project> get projectUpdates =>
+      (super.noSuchMethod(
+            Invocation.getter(#projectUpdates),
+            returnValue: _i5.Stream<_i2.Project>.empty(),
+          )
+          as _i5.Stream<_i2.Project>);
+
+  @override
+  _i5.Stream<String> get projectDeletions =>
+      (super.noSuchMethod(
+            Invocation.getter(#projectDeletions),
+            returnValue: _i5.Stream<String>.empty(),
+          )
+          as _i5.Stream<String>);
+
+  @override
   _i5.Future<List<_i2.Project>> getProjects() =>
       (super.noSuchMethod(
             Invocation.method(#getProjects, []),
@@ -73,6 +89,58 @@ class MockProjectService extends _i1.Mock implements _i4.ProjectService {
             ),
           )
           as _i5.Future<_i2.Project>);
+
+  @override
+  _i5.Future<void> deleteProject({required String? projectId}) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteProject, [], {#projectId: projectId}),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<_i2.Project> updateProject({
+    required String? projectId,
+    String? name,
+    String? description,
+    String? colorId,
+    DateTime? deadline,
+    String? status,
+    String? type,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateProject, [], {
+              #projectId: projectId,
+              #name: name,
+              #description: description,
+              #colorId: colorId,
+              #deadline: deadline,
+              #status: status,
+              #type: type,
+            }),
+            returnValue: _i5.Future<_i2.Project>.value(
+              _FakeProject_0(
+                this,
+                Invocation.method(#updateProject, [], {
+                  #projectId: projectId,
+                  #name: name,
+                  #description: description,
+                  #colorId: colorId,
+                  #deadline: deadline,
+                  #status: status,
+                  #type: type,
+                }),
+              ),
+            ),
+          )
+          as _i5.Future<_i2.Project>);
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 }
 
 /// A class which mocks [TaskService].
@@ -82,6 +150,22 @@ class MockTaskService extends _i1.Mock implements _i6.TaskService {
   MockTaskService() {
     _i1.throwOnMissingStub(this);
   }
+
+  @override
+  _i5.Stream<_i3.Task> get taskUpdates =>
+      (super.noSuchMethod(
+            Invocation.getter(#taskUpdates),
+            returnValue: _i5.Stream<_i3.Task>.empty(),
+          )
+          as _i5.Stream<_i3.Task>);
+
+  @override
+  _i5.Stream<String> get taskDeletions =>
+      (super.noSuchMethod(
+            Invocation.getter(#taskDeletions),
+            returnValue: _i5.Stream<String>.empty(),
+          )
+          as _i5.Stream<String>);
 
   @override
   _i5.Future<List<_i3.Task>> getTodayTasks({
@@ -230,4 +314,10 @@ class MockTaskService extends _i1.Mock implements _i6.TaskService {
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
           as _i5.Future<void>);
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 }
