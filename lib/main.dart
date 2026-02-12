@@ -3,14 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
 import 'core/navigation/auth_gate.dart';
+import 'package:kabachok_lasalsa_front/injection_container.dart' as di;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Обязательно для async main
+
   await initializeDateFormatting(
     'ru_RU',
     null,
   ); // Инициализация локализации дат
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  await di.init(); // Инициализация DI
+
   runApp(const LaSalsaApp());
 }
 

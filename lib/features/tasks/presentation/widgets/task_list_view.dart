@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
@@ -40,12 +41,55 @@ class _TaskListViewState extends State<TaskListView> {
   String? _error;
   List<Task> _tasks = [];
   late final TaskService _taskService;
+  StreamSubscription<Task>? _taskSubscription;
+  StreamSubscription<String>? _taskDeleteSubscription;
 
   @override
   void initState() {
     super.initState();
     _taskService = widget.service ?? TaskService();
     _fetchTasks();
+    _taskSubscription = _taskService.taskUpdates.listen(_onTaskUpdated);
+    _taskDeleteSubscription = _taskService.taskDeletions.listen(_onTaskDeleted);
+  }
+
+  @override
+  void dispose() {
+    _taskSubscription?.cancel();
+    _taskDeleteSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _onTaskUpdated(Task updatedTask) {
+    if (!mounted) return;
+    setState(() {
+      final index = _tasks.indexWhere((t) => t.id == updatedTask.id);
+      if (index != -1) {
+        // Если задана начальная дата (например, для списка "Сегодня"),
+        // проверяем, совпадает ли дата задачи с ней.
+        if (widget.initialDate != null) {
+          final taskDate = updatedTask.plannedAt;
+          final listDate = widget.initialDate!;
+          final isSameDay =
+              taskDate != null &&
+              taskDate.year == listDate.year &&
+              taskDate.month == listDate.month &&
+              taskDate.day == listDate.day;
+          if (!isSameDay) {
+            _tasks.removeAt(index);
+            return;
+          }
+        }
+        _tasks[index] = updatedTask;
+      }
+    });
+  }
+
+  void _onTaskDeleted(String taskId) {
+    if (!mounted) return;
+    setState(() {
+      _tasks.removeWhere((t) => t.id == taskId);
+    });
   }
 
   Future<void> _fetchTasks() async {
@@ -122,7 +166,8 @@ class _TaskListViewState extends State<TaskListView> {
     }
     if (_error != null) {
       return Center(
-          child: Text(_error!, style: const TextStyle(color: Colors.red)));
+        child: Text(_error!, style: const TextStyle(color: Colors.red)),
+      );
     }
     return TaskListBase(
       tasks: _tasks,
@@ -143,9 +188,7 @@ class _TaskListViewState extends State<TaskListView> {
       ),
       body: Column(
         children: [
-          Expanded(
-            child: _buildBody(),
-          ),
+          Expanded(child: _buildBody()),
           QuickAddTaskBar(
             onTaskSubmitted: _handleAddTask,
             initialValue: widget.initialValue,

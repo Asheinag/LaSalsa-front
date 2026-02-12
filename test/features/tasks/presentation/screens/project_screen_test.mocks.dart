@@ -38,6 +38,22 @@ class MockTaskService extends _i1.Mock implements _i3.TaskService {
   }
 
   @override
+  _i4.Stream<_i2.Task> get taskUpdates =>
+      (super.noSuchMethod(
+            Invocation.getter(#taskUpdates),
+            returnValue: _i4.Stream<_i2.Task>.empty(),
+          )
+          as _i4.Stream<_i2.Task>);
+
+  @override
+  _i4.Stream<String> get taskDeletions =>
+      (super.noSuchMethod(
+            Invocation.getter(#taskDeletions),
+            returnValue: _i4.Stream<String>.empty(),
+          )
+          as _i4.Stream<String>);
+
+  @override
   _i4.Future<List<_i2.Task>> getTodayTasks({
     required String? offset,
     required String? limit,
@@ -184,4 +200,10 @@ class MockTaskService extends _i1.Mock implements _i3.TaskService {
             returnValueForMissingStub: _i4.Future<void>.value(),
           )
           as _i4.Future<void>);
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 }

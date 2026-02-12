@@ -109,7 +109,7 @@ void main() {
 
       verify(
         mockDio.post(
-          '/tasks', // Проверяем, что URL был сформирован правильно
+          '/tasks/', // Проверяем, что URL был сформирован правильно
           data: {
             'name': 'New Task',
             'description': '',
@@ -157,11 +157,33 @@ void main() {
       ).called(1);
     });
 
+    test('updateTaskStatus should emit updated task to stream', () async {
+      final fakeResponse = {
+        "id": 1,
+        "name": "Stream Task",
+        "description": "",
+        "status": "DONE",
+      };
+
+      when(mockDio.patch(any, data: anyNamed('data'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: ''),
+          data: fakeResponse,
+          statusCode: 200,
+        ),
+      );
+
+      // Expect the task to be emitted
+      expectLater(taskService.taskUpdates, emits(isA<Task>()));
+
+      await taskService.updateTaskStatus(taskId: '1', taskStatus: 'DONE');
+    });
+
     test('getTodayTasks should throw an exception on network error', () async {
       // ARRANGE
-      when(mockDio.get(any)).thenThrow(
-        DioException(requestOptions: RequestOptions(path: '')),
-      );
+      when(
+        mockDio.get(any),
+      ).thenThrow(DioException(requestOptions: RequestOptions(path: '')));
 
       // ACT
       final future = taskService.getTodayTasks(limit: '0', offset: '20');
@@ -170,9 +192,12 @@ void main() {
       await expectLater(
         future,
         throwsA(
-          predicate((e) =>
-              e is Exception &&
-              e.toString() == 'Exception: Не удалось загрузить задачи на сегодня.'),
+          predicate(
+            (e) =>
+                e is Exception &&
+                e.toString() ==
+                    'Exception: Не удалось загрузить задачи на сегодня.',
+          ),
         ),
       );
       verify(mockDio.get('/tasks/today?offset=20&limit=0')).called(1);
@@ -180,38 +205,60 @@ void main() {
 
     test('createTask should throw an exception on network error', () async {
       // ARRANGE
-      when(mockDio.post(any, data: anyNamed('data'))).thenThrow(
-        DioException(requestOptions: RequestOptions(path: '')),
-      );
+      when(
+        mockDio.post(any, data: anyNamed('data')),
+      ).thenThrow(DioException(requestOptions: RequestOptions(path: '')));
 
       // ACT & ASSERT
       expect(
         () => taskService.createTask(taskName: 'New Task'),
         throwsA(
-          predicate((e) =>
-              e is Exception && e.toString() == 'Exception: Не удалось создать задачу.'),
+          predicate(
+            (e) =>
+                e is Exception &&
+                e.toString() == 'Exception: Не удалось создать задачу.',
+          ),
         ),
       );
-      verify(mockDio.post('/tasks', data: anyNamed('data'))).called(1);
+      verify(mockDio.post('/tasks/', data: anyNamed('data'))).called(1);
     });
 
-    test('updateTaskStatus should throw an exception on network error',
-        () async {
+    test(
+      'updateTaskStatus should throw an exception on network error',
+      () async {
+        // ARRANGE
+        when(
+          mockDio.patch(any, data: anyNamed('data')),
+        ).thenThrow(DioException(requestOptions: RequestOptions(path: '')));
+
+        // ACT & ASSERT
+        expect(
+          () => taskService.updateTaskStatus(taskId: '1', taskStatus: 'DONE'),
+          throwsA(
+            predicate(
+              (e) =>
+                  e is Exception &&
+                  e.toString() ==
+                      'Exception: Не удалось обновить статус задачи.',
+            ),
+          ),
+        );
+        verify(mockDio.patch('/tasks/1', data: anyNamed('data'))).called(1);
+      },
+    );
+
+    test('deleteTask should emit deleted task ID to stream', () async {
       // ARRANGE
-      when(mockDio.patch(any, data: anyNamed('data'))).thenThrow(
-        DioException(requestOptions: RequestOptions(path: '')),
+      when(mockDio.delete(any)).thenAnswer(
+        (_) async =>
+            Response(requestOptions: RequestOptions(path: ''), statusCode: 204),
       );
 
-      // ACT & ASSERT
-      expect(
-        () => taskService.updateTaskStatus(taskId: '1', taskStatus: 'DONE'),
-        throwsA(
-          predicate((e) =>
-              e is Exception &&
-              e.toString() == 'Exception: Не удалось обновить статус задачи.'),
-        ),
-      );
-      verify(mockDio.patch('/tasks/1', data: anyNamed('data'))).called(1);
+      // ASSERT
+      expectLater(taskService.taskDeletions, emits('1'));
+
+      // ACT
+      await taskService.deleteTask(taskId: '1');
     });
   });
 }
