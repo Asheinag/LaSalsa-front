@@ -133,6 +133,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         description: updatedTask.description,
         projectId: updatedTask.projectId,
         plannedAt: updatedTask.plannedAt,
+        status: updatedTask.status,
       );
     } catch (e) {
       if (mounted) {

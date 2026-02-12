@@ -34,7 +34,8 @@ class TaskDetailView extends StatefulWidget {
 class _TaskDetailViewState extends State<TaskDetailView> {
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
-
+  StreamSubscription<Task>? _taskSubscription;
+  late Task _task;
   Timer? _debounceTimer;
 
   bool _isSaving = false;
@@ -67,14 +68,33 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     }
   }
 
+  void _subscribeToTaskUpdates() {
+    // 1. Обязательно отменяем старую подписку, если она была
+    _taskSubscription?.cancel();
+
+    // 2. Создаем новую, которая слушает ID текущей (новой) задачи
+    _taskSubscription = _taskService.taskUpdates
+        .where((updatedTask) => updatedTask.id == _task.id)
+        .listen(_onTaskUpdated);
+  }
+
   @override
   void initState() {
     super.initState();
+    _task = widget.task!;
     _taskService = widget.taskService ?? getIt<TaskService>();
     _nameController = TextEditingController();
     _descriptionController = TextEditingController();
+    _subscribeToTaskUpdates();
     _getTaskDetails();
     _updateControllers();
+  }
+
+  void _onTaskUpdated(Task updatedTask) {
+    if (!mounted) return;
+    setState(() {
+      _task = updatedTask;
+    });
   }
 
   // Если родитель передал новую задачу (пользователь кликнул на другую строку),
@@ -82,15 +102,22 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   @override
   void didUpdateWidget(covariant TaskDetailView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Проверяем: если ID задачи изменился — значит пользователь выбрал другую задачу
+
+    // Если ID изменился (пользователь выбрал другую задачу)
     if (widget.task?.id != oldWidget.task?.id) {
-      // 1. Останавливаем таймер автосохранения от старой задачи (если он тикал)
+      // 1. Отменяем старые таймеры
       _debounceTimer?.cancel();
 
-      // 2. Обновляем контроллеры "черновиком" новой задачи
+      // 2. ВАЖНО: Явно обновляем локальную переменную _task на новую
+      _task = widget.task!;
+
+      // 3. ВАЖНО: Переподписываемся на события новой задачи
+      _subscribeToTaskUpdates();
+
+      // 4. Обновляем контроллеры (теперь они возьмут данные из новой _task)
       _updateControllers();
 
-      // 3. Загружаем полные данные для новой задачи
+      // 5. Загружаем полные данные с сервера
       _getTaskDetails();
     }
   }
@@ -101,9 +128,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     if (widget.task == null) return;
     setState(() {});
     try {
-      final detailedTask = await _taskService.getTaskDetails(
-        taskId: widget.task!.id,
-      );
+      final detailedTask = await _taskService.getTaskDetails(taskId: _task.id);
       if (mounted) {
         setState(() {
           // Обновляем контроллеры
@@ -127,8 +152,8 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   void _updateControllers() {
     if (widget.task != null) {
       // Важно: ставим курсор, чтобы не сбивался, но тут просто обновляем текст
-      _nameController.text = widget.task!.name;
-      _descriptionController.text = widget.task!.description;
+      _nameController.text = _task.name;
+      _descriptionController.text = _task.description;
     }
   }
 
@@ -137,6 +162,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     _debounceTimer?.cancel();
     _nameController.dispose();
     _descriptionController.dispose();
+    _taskSubscription?.cancel();
     super.dispose();
   }
 
@@ -157,7 +183,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
 
     // Собираем новую версию задачи
     // (В реале лучше слать только diff, но пока обновим объект целиком локально)
-    final updatedTask = widget.task!.copyWith(
+    final updatedTask = _task.copyWith(
       name: _nameController.text.trim(),
       description: _descriptionController.text.trim(),
       // Остальные поля пока старые
@@ -170,7 +196,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   // Изменение проекта (без таймера, сразу сохраняем)
   void _changeProject(String? newProjectId) {
     if (widget.task == null || newProjectId == null) return;
-    final updatedTask = widget.task!.copyWith(projectId: newProjectId);
+    final updatedTask = _task.copyWith(projectId: newProjectId);
     _performUpdate(updatedTask);
   }
 
@@ -180,7 +206,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: widget.task!.plannedAt ?? DateTime.now(),
+      initialDate: _task.plannedAt ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
@@ -188,7 +214,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     if (picked != null) {
       // Добавляем время (пока ставим конец дня или текущее)
       final newDate = DateTime(picked.year, picked.month, picked.day, 12, 0);
-      final updatedTask = widget.task!.copyWith(plannedAt: newDate);
+      final updatedTask = _task.copyWith(plannedAt: newDate);
       _performUpdate(updatedTask);
     }
   }
@@ -197,7 +223,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     if (widget.task == null) return;
 
     try {
-      await _taskService.deleteTask(taskId: widget.task!.id);
+      await _taskService.deleteTask(taskId: _task.id);
       if (mounted && widget.onDelete != null) {
         widget.onDelete!();
       }
@@ -212,11 +238,26 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     }
   }
 
+  void _toggleStatus(bool? isDone) {
+    if (widget.task == null || isDone == null) return;
+
+    final newStatus = isDone ? 'DONE' : 'TODO';
+    // Локально обновляем дату завершения для мгновенного отклика UI
+    final newClosedAt = isDone ? DateTime.now() : null;
+
+    final updatedTask = _task.copyWith(
+      status: newStatus,
+      closedAt: newClosedAt,
+    );
+
+    _performUpdate(updatedTask);
+  }
+
   @override
   Widget build(BuildContext context) {
     // Находим текущий проект для Dropdown
-    logger.i('Current project id is ${widget.task!.projectId}');
-    final currentProjectId = widget.task!.projectId;
+    logger.i('Current project id is ${_task.projectId}');
+    final currentProjectId = _task.projectId;
 
     // Основная верстка деталей
     return Container(
@@ -296,18 +337,39 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                 const SizedBox(height: 24),
 
                 // 2. НАЗВАНИЕ (TextField)
-                TextField(
-                  controller: _nameController,
-                  onChanged: (_) => _onFieldChanged(), // Запускаем дебаунс
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  decoration: const InputDecoration(
-                    hintText: 'Название задачи',
-                    border: InputBorder.none, // Убираем рамку, чтобы было чисто
-                  ),
-                  maxLines: null,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0, right: 8.0),
+                      // 2.1
+                      child: Transform.scale(
+                        scale: 1.2,
+                        child: Checkbox(
+                          shape: const CircleBorder(),
+                          value: _task.status == 'DONE',
+                          onChanged: _toggleStatus,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: _nameController,
+                        onChanged: (_) =>
+                            _onFieldChanged(), // Запускаем дебаунс
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: 'Название задачи',
+                          border: InputBorder
+                              .none, // Убираем рамку, чтобы было чисто
+                        ),
+                        maxLines: null,
+                      ),
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 16),
@@ -326,16 +388,14 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          widget.task!.plannedAt != null
+                          _task.plannedAt != null
                               ? DateFormat(
                                   'dd MMM yyyy',
-                                ).format(widget.task!.plannedAt!)
+                                ).format(_task.plannedAt!)
                               : 'Добавить плановую дату завершения',
                           style: TextStyle(
-                            color: widget.task!.plannedAt != null
-                                ? widget.task!.plannedAt!.isBefore(
-                                        DateTime.now(),
-                                      )
+                            color: _task.plannedAt != null
+                                ? _task.plannedAt!.isBefore(DateTime.now())
                                       ? Colors.deepOrange[700]
                                       : Colors.blueGrey[800]
                                 : Colors.grey,
@@ -347,12 +407,12 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                 ),
 
                 // Доп. даты: завершено
-                if (widget.task!.closedAt != null) ...[
+                if (_task.closedAt != null) ...[
                   const SizedBox(height: 12),
                   _buildDateRow(
                     context,
                     'Завершено',
-                    widget.task!.closedAt!,
+                    _task.closedAt!,
                     isDone: true,
                   ),
                 ],

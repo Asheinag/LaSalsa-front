@@ -323,7 +323,7 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
                   const SizedBox(height: 12),
                   _buildDateRow(
                     context,
-                    'Завершено',
+                    'Обновлено',
                     widget.project!.updatedAt!,
                     isDone: true,
                   ),
@@ -401,7 +401,6 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: isDone ? Colors.green[700] : Colors.black87,
-            decoration: isDone ? TextDecoration.lineThrough : null,
           ),
         ),
       ],
