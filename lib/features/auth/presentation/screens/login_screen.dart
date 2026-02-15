@@ -63,42 +63,48 @@ class _LoginScreenState extends State<LoginScreen> {
           constraints: const BoxConstraints(maxWidth: 400), // 👈 максимум 400px
           child: Padding(
             padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  height: 350,
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    fit: BoxFit.contain,
+            child: AutofillGroup(
+              // Оборачиваем в AutofillGroup для автозаполнения браузером
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    height: 350,
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 30),
-                TextField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                  textInputAction: TextInputAction.next,
-                  onSubmitted: (_) {
-                    FocusScope.of(context).requestFocus(_passwordFocusNode);
-                  },
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _passwordController,
-                  focusNode: _passwordFocusNode,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Пароль'),
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => signIn(),
-                ),
-                const SizedBox(height: 20),
-                TextButton(onPressed: signIn, child: const Text('Войти')),
-                Text('или'),
-                TextButton(
-                  onPressed: signUp,
-                  child: const Text('Зарегистрироваться'),
-                ),
-              ],
+                  const SizedBox(height: 30),
+                  TextField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) {
+                      FocusScope.of(context).requestFocus(_passwordFocusNode);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _passwordController,
+                    focusNode: _passwordFocusNode,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Пароль'),
+                    autofillHints: const [AutofillHints.password],
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => signIn(),
+                  ),
+                  const SizedBox(height: 20),
+                  TextButton(onPressed: signIn, child: const Text('Войти')),
+                  const Text('или'),
+                  TextButton(
+                    onPressed: signUp,
+                    child: const Text('Зарегистрироваться'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

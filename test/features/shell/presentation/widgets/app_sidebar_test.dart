@@ -59,4 +59,75 @@ void main() {
       mockProjectService.createProject(name: 'My New Project', colorId: '0'),
     ).called(1);
   });
+
+  testWidgets('AppSidebar displays logout button', (tester) async {
+    // ARRANGE
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AppSidebar(
+            projects: [],
+            onPageSelected: (page, {args}) {},
+            projectService: mockProjectService,
+          ),
+        ),
+      ),
+    );
+
+    // ACT & ASSERT
+    expect(find.text('Выход'), findsOneWidget);
+    expect(find.byIcon(Icons.logout), findsOneWidget);
+  });
+
+  testWidgets('AppSidebar navigates to today page', (tester) async {
+    // ARRANGE
+    String? selectedPage;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AppSidebar(
+            projects: [],
+            onPageSelected: (page, {args}) {
+              selectedPage = page;
+            },
+            projectService: mockProjectService,
+          ),
+        ),
+      ),
+    );
+
+    // ACT
+    await tester.tap(find.text('Сегодня'));
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(selectedPage, 'today');
+  });
+
+  testWidgets('AppSidebar navigates to inbox page', (tester) async {
+    // ARRANGE
+    String? selectedPage;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AppSidebar(
+            projects: [],
+            onPageSelected: (page, {args}) {
+              selectedPage = page;
+            },
+            projectService: mockProjectService,
+          ),
+        ),
+      ),
+    );
+
+    // ACT
+    await tester.tap(find.text('Входящие'));
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(selectedPage, 'inbox');
+  });
 }

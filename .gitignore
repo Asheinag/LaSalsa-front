@@ -53,3 +53,7 @@ app.*.map.json
 
 # VSCODE settings
 .vscode/
+
+# Claude
+CLAUDE.md
+.claude/*
