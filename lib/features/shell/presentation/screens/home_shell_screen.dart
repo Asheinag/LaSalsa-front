@@ -71,10 +71,20 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     setState(() {
       final index = _projects.indexWhere((p) => p.id == updatedProject.id);
       if (index != -1) {
-        _projects[index] = updatedProject;
-      }
-      if (_selectedProject?.id == updatedProject.id) {
-        _selectedProject = updatedProject;
+        if (updatedProject.status != 'ACTIVE') {
+          // Проект архивирован — убираем из сайдбара как при удалении
+          _projects.removeAt(index);
+          if (_selectedProject?.id == updatedProject.id) {
+            _selectedProject = null;
+            _selectedPageId = 'inbox';
+            _currentPageArgs = null;
+          }
+        } else {
+          _projects[index] = updatedProject;
+          if (_selectedProject?.id == updatedProject.id) {
+            _selectedProject = updatedProject;
+          }
+        }
       }
     });
   }
@@ -106,7 +116,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       final projects = await _projectService.getProjects();
       if (mounted) {
         setState(() {
-          _projects = projects;
+          _projects = projects.where((p) => p.status == 'ACTIVE').toList();
           _isLoading = false;
         });
       }
@@ -239,8 +249,9 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : AppSidebar(
-                  projects:
-                      _projects, // <-- AppSidebar теперь просто "рисует" их
+                  projects: _projects
+                      .where((p) => p.status == 'ACTIVE')
+                      .toList(), // только активные проекты
                   onPageSelected:
                       _onPageChanged, // <-- Передаем метод переключения страниц
                   onProjectCreated: (newProject) {
