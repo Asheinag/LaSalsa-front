@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 import 'package:kabachok_lasalsa_front/core/theme/project_colors.dart';
+import 'package:kabachok_lasalsa_front/injection_container.dart' as di;
 
 class AppSidebar extends StatefulWidget {
   final List<Project> projects;
@@ -70,6 +72,25 @@ class _AppSidebarState extends State<AppSidebar> {
       }
     }
     _newProjectController.clear();
+  }
+
+  Future<void> _handleLogout() async {
+    try {
+      // Сначала сбрасываем кэш сервисов
+      await di.reset();
+      logger.i('Кэш сервисов сброшен');
+
+      // Затем выходим из Firebase
+      await FirebaseAuth.instance.signOut();
+      logger.i('Пользователь вышел из системы');
+    } catch (e) {
+      logger.e('Ошибка при выходе: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка выхода: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -198,6 +219,16 @@ class _AppSidebarState extends State<AppSidebar> {
                   );
                 },
               ),
+            ),
+            const Divider(),
+            // Кнопка выхода
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text(
+                'Выход',
+                style: TextStyle(color: Colors.red),
+              ),
+              onTap: _handleLogout,
             ),
           ],
         ),

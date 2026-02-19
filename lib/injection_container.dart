@@ -17,3 +17,24 @@ Future<void> init() async {
   // sl.registerLazySingleton(() => AuthService());
   // sl.registerLazySingleton(() => Dio()); // Чтобы и Dio был общим
 }
+
+/// Сбрасывает все сервисы и очищает кэш
+/// Используется при выходе пользователя из системы
+Future<void> reset() async {
+  // Вызываем dispose на существующих сервисах, если они были созданы
+  if (getIt.isRegistered<TaskService>()) {
+    final taskService = getIt<TaskService>();
+    taskService.dispose();
+    await getIt.unregister<TaskService>();
+  }
+
+  if (getIt.isRegistered<ProjectService>()) {
+    final projectService = getIt<ProjectService>();
+    projectService.dispose();
+    await getIt.unregister<ProjectService>();
+  }
+
+  // Пересоздаем сервисы заново
+  getIt.registerLazySingleton(() => TaskService());
+  getIt.registerLazySingleton(() => ProjectService());
+}
