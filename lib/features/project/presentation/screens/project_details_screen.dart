@@ -31,6 +31,7 @@ class ProjectDetailsScreen extends StatelessWidget {
       emptyListMessage: "В этом проекте пока нет задач. Добавьте первую!",
       onTaskTap: onTaskTap,
       service: taskService,
+      hideCompleted: true,
     );
   }
 }

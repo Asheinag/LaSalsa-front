@@ -129,23 +129,151 @@ void main() {
     await tester.tap(find.text('To Delete'));
     await tester.pumpAndSettle();
 
-    // Проверяем, что мы не в Inbox (Inbox обычно не имеет заголовка проекта в деталях, но тут проверим косвенно или через стейт)
-    // В данном случае просто проверим, что после удаления выберется Inbox.
     // Эмулируем удаление
     projectDeleteController.add('1');
     await tester.pumpAndSettle();
 
-    // ASSERT
-    // Проверяем, что проект исчез из списка
+    // ASSERT: проект исчез из списка
     expect(find.text('To Delete'), findsNothing);
-
-    // Проверяем, что переключились на Inbox.
-    // В HomeShellScreen _buildActiveScreen возвращает InboxScreen для 'inbox'.
-    // InboxScreen имеет заголовок "Входящие" (обычно, но в коде выше InboxScreen не показан полностью).
-    // Предположим, что InboxScreen имеет какой-то уникальный текст или ключ.
-    // В предоставленном коде InboxScreen создается.
-    // Мы можем проверить, что вызвался build для InboxScreen, найдя его тип.
-    // Но так как InboxScreen импортирован, лучше искать виджет.
-    // В данном тесте достаточно проверить отсутствие проекта.
   });
+
+  testWidgets(
+    'При загрузке показывает только ACTIVE-проекты в сайдбаре',
+    (tester) async {
+      // ARRANGE
+      final activeProject = Project(
+        id: '1',
+        name: 'Активный проект',
+        colorId: '0',
+        status: 'ACTIVE',
+      );
+      final completedProject = Project(
+        id: '2',
+        name: 'Завершённый проект',
+        colorId: '0',
+        status: 'COMPLETED',
+      );
+      final canceledProject = Project(
+        id: '3',
+        name: 'Отменённый проект',
+        colorId: '0',
+        status: 'CANCELED',
+      );
+
+      when(mockProjectService.getProjects()).thenAnswer(
+        (_) async => [activeProject, completedProject, canceledProject],
+      );
+
+      // ACT
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HomeShellScreen(
+            projectService: mockProjectService,
+            taskService: mockTaskService,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // ASSERT: в сайдбаре только активный проект
+      expect(find.text('Активный проект'), findsOneWidget);
+      expect(find.text('Завершённый проект'), findsNothing);
+      expect(find.text('Отменённый проект'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Проект исчезает из сайдбара при смене статуса на COMPLETED через стрим',
+    (tester) async {
+      // ARRANGE
+      final project = Project(
+        id: '1',
+        name: 'Мой проект',
+        colorId: '0',
+        status: 'ACTIVE',
+      );
+      final archivedProject = Project(
+        id: '1',
+        name: 'Мой проект',
+        colorId: '0',
+        status: 'COMPLETED',
+      );
+
+      when(mockProjectService.getProjects()).thenAnswer((_) async => [project]);
+
+      // ACT
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HomeShellScreen(
+            projectService: mockProjectService,
+            taskService: mockTaskService,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Мой проект'), findsOneWidget);
+
+      // Эмулируем архивацию через стрим
+      projectUpdateController.add(archivedProject);
+      await tester.pumpAndSettle();
+
+      // ASSERT: проект исчез из сайдбара
+      expect(find.text('Мой проект'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'При архивации текущего проекта переключается на Входящие',
+    (tester) async {
+      // ARRANGE
+      final project = Project(
+        id: '1',
+        name: 'Проект для архивации',
+        colorId: '0',
+        status: 'ACTIVE',
+      );
+      final archivedProject = Project(
+        id: '1',
+        name: 'Проект для архивации',
+        colorId: '0',
+        status: 'CANCELED',
+      );
+
+      when(mockProjectService.getProjects()).thenAnswer((_) async => [project]);
+      when(
+        mockTaskService.getTasksByProject(projectId: anyNamed('projectId')),
+      ).thenAnswer((_) async => []);
+      when(
+        mockTaskService.getTasks(
+          offset: anyNamed('offset'),
+          limit: anyNamed('limit'),
+        ),
+      ).thenAnswer((_) async => []);
+
+      // ACT
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HomeShellScreen(
+            projectService: mockProjectService,
+            taskService: mockTaskService,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Открываем проект через сайдбар
+      await tester.tap(find.text('Проект для архивации'));
+      await tester.pumpAndSettle();
+
+      // Архивируем проект через стрим
+      projectUpdateController.add(archivedProject);
+      await tester.pumpAndSettle();
+
+      // ASSERT: проект исчез из сайдбара, переключились на "Входящие"
+      // (текст "Входящие" есть и в сайдбаре-пункте меню, и в AppBar InboxScreen)
+      expect(find.text('Проект для архивации'), findsNothing);
+      expect(find.text('Входящие'), findsWidgets);
+    },
+  );
 }

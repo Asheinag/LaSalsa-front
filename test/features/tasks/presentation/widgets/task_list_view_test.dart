@@ -132,4 +132,160 @@ void main() {
       expect(find.text(DateFormat('dd.MM').format(initialDate)), findsOneWidget);
     });
   });
+
+  group('Поведение hideCompleted', () {
+    final todoTask = Task(
+      id: '1',
+      name: 'Активная задача',
+      description: '',
+      status: 'TODO',
+    );
+    final doneTask = Task(
+      id: '2',
+      name: 'Выполненная задача',
+      description: '',
+      status: 'DONE',
+    );
+
+    Future<Task> fakeCreator(String title, DateTime? plannedAt) async =>
+        Task(id: '3', name: title, description: '', status: 'TODO');
+
+    testWidgets(
+      'hideCompleted: false — показывает все задачи включая DONE',
+      (tester) async {
+        // ARRANGE
+        Future<List<Task>> fetcher() async => [todoTask, doneTask];
+
+        // ACT
+        await tester.pumpWidget(
+          MaterialApp(
+            home: TaskListView(
+              title: 'Test',
+              fetcher: fetcher,
+              creator: fakeCreator,
+              emptyListMessage: 'Пусто',
+              hideCompleted: false,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // ASSERT: обе задачи видны, тоггл не отображается
+        expect(find.text('Активная задача'), findsOneWidget);
+        expect(find.text('Выполненная задача'), findsOneWidget);
+        expect(find.textContaining('Выполнено ('), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'hideCompleted: true — скрывает DONE-задачи по умолчанию',
+      (tester) async {
+        // ARRANGE
+        Future<List<Task>> fetcher() async => [todoTask, doneTask];
+
+        // ACT
+        await tester.pumpWidget(
+          MaterialApp(
+            home: TaskListView(
+              title: 'Test',
+              fetcher: fetcher,
+              creator: fakeCreator,
+              emptyListMessage: 'Пусто',
+              hideCompleted: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // ASSERT: только активная задача видна
+        expect(find.text('Активная задача'), findsOneWidget);
+        expect(find.text('Выполненная задача'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'hideCompleted: true — показывает кнопку "Выполнено (N)" при наличии DONE-задач',
+      (tester) async {
+        // ARRANGE
+        Future<List<Task>> fetcher() async => [todoTask, doneTask];
+
+        // ACT
+        await tester.pumpWidget(
+          MaterialApp(
+            home: TaskListView(
+              title: 'Test',
+              fetcher: fetcher,
+              creator: fakeCreator,
+              emptyListMessage: 'Пусто',
+              hideCompleted: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // ASSERT: тоггл-кнопка с правильным счётчиком
+        expect(find.text('Выполнено (1)'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'По клику на тоггл DONE-задачи раскрываются и текст кнопки меняется',
+      (tester) async {
+        // ARRANGE
+        Future<List<Task>> fetcher() async => [todoTask, doneTask];
+
+        // ACT
+        await tester.pumpWidget(
+          MaterialApp(
+            home: TaskListView(
+              title: 'Test',
+              fetcher: fetcher,
+              creator: fakeCreator,
+              emptyListMessage: 'Пусто',
+              hideCompleted: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Убеждаемся, что DONE-задача скрыта
+        expect(find.text('Выполненная задача'), findsNothing);
+
+        // ACT: нажимаем тоггл
+        await tester.tap(find.text('Выполнено (1)'));
+        await tester.pumpAndSettle();
+
+        // ASSERT: DONE-задача видна, кнопка сменила текст
+        expect(find.text('Выполненная задача'), findsOneWidget);
+        expect(find.text('Скрыть выполненные'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'hideCompleted: true без DONE-задач — тоггл не отображается',
+      (tester) async {
+        // ARRANGE: только TODO задачи
+        Future<List<Task>> fetcher() async => [todoTask];
+
+        // ACT
+        await tester.pumpWidget(
+          MaterialApp(
+            home: TaskListView(
+              title: 'Test',
+              fetcher: fetcher,
+              creator: fakeCreator,
+              emptyListMessage: 'Пусто',
+              hideCompleted: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // ASSERT: задача видна, тоггл отсутствует
+        expect(find.text('Активная задача'), findsOneWidget);
+        expect(find.textContaining('Выполнено ('), findsNothing);
+        expect(find.text('Скрыть выполненные'), findsNothing);
+      },
+    );
+  });
 }

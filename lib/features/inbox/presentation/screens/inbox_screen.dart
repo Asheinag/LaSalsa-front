@@ -23,6 +23,7 @@ class InboxScreen extends StatelessWidget {
       emptyListMessage: 'Вообще нет задач! Вы сделали всё!',
       onTaskTap: onTaskTap,
       service: taskService,
+      hideCompleted: true,
     );
   }
 }

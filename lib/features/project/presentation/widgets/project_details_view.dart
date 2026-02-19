@@ -33,6 +33,7 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   int _selectedColorId = 0;
+  String _selectedStatus = 'ACTIVE';
   Timer? _debounceTimer;
   bool _isSaving = false;
 
@@ -100,6 +101,7 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
         _nameController.text = widget.project!.name;
         _descriptionController.text = widget.project!.description ?? '';
         _selectedColorId = int.tryParse(widget.project!.colorId ?? '0') ?? 0;
+        _selectedStatus = widget.project!.status;
       });
     }
   }
@@ -146,6 +148,13 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
     _performUpdate(updatedProject);
   }
 
+  void _changeStatus(String newStatus) {
+    if (widget.project == null) return;
+    setState(() => _selectedStatus = newStatus);
+    final updatedProject = widget.project!.copyWith(status: newStatus);
+    _performUpdate(updatedProject);
+  }
+
   void _updateData() {
     if (widget.project == null) return;
 
@@ -166,6 +175,10 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
     final newColorId = int.tryParse(widget.project!.colorId ?? '0') ?? 0;
     if (_selectedColorId != newColorId) {
       _selectedColorId = newColorId;
+    }
+    // 4. Обновляем статус при смене проекта
+    if (_selectedStatus != widget.project!.status) {
+      _selectedStatus = widget.project!.status;
     }
   }
 
@@ -329,8 +342,36 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
                   ),
                 ],
 
+                const SizedBox(height: 20),
+                // 4. СТАТУС
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'ACTIVE',
+                      label: Text('Активен'),
+                      icon: Icon(Icons.play_circle_outline, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: 'COMPLETED',
+                      label: Text('Завершён'),
+                      icon: Icon(Icons.check_circle_outline, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: 'CANCELED',
+                      label: Text('Отменён'),
+                      icon: Icon(Icons.cancel_outlined, size: 16),
+                    ),
+                  ],
+                  selected: {_selectedStatus},
+                  onSelectionChanged: (selection) =>
+                      _changeStatus(selection.first),
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+
                 const SizedBox(height: 32),
-                // 4. ОПИСАНИЕ (TextField)
+                // 5. ОПИСАНИЕ (TextField)
                 TextField(
                   controller: _descriptionController,
                   onChanged: (_) => _onFieldChanged(),

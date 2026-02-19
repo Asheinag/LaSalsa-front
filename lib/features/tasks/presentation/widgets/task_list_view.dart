@@ -19,6 +19,7 @@ class TaskListView extends StatefulWidget {
   final TaskService? service;
   final String? initialValue;
   final DateTime? initialDate;
+  final bool hideCompleted; // Скрывать выполненные задачи по умолчанию
 
   const TaskListView({
     super.key,
@@ -30,6 +31,7 @@ class TaskListView extends StatefulWidget {
     this.service,
     this.initialValue,
     this.initialDate,
+    this.hideCompleted = false,
   });
 
   @override
@@ -40,6 +42,7 @@ class _TaskListViewState extends State<TaskListView> {
   bool _isLoading = true;
   String? _error;
   List<Task> _tasks = [];
+  bool _showCompleted = false;
   late final TaskService _taskService;
   StreamSubscription<Task>? _taskSubscription;
   StreamSubscription<String>? _taskDeleteSubscription;
@@ -169,12 +172,65 @@ class _TaskListViewState extends State<TaskListView> {
         child: Text(_error!, style: const TextStyle(color: Colors.red)),
       );
     }
-    return TaskListBase(
-      tasks: _tasks,
-      onTaskStatusChanged: _handleStatusUpdate,
-      emptyListMessage:
-          widget.emptyListMessage, // Используем переданное сообщение
-      onTaskTap: widget.onTaskTap,
+
+    if (!widget.hideCompleted) {
+      return TaskListBase(
+        tasks: _tasks,
+        onTaskStatusChanged: _handleStatusUpdate,
+        emptyListMessage: widget.emptyListMessage,
+        onTaskTap: widget.onTaskTap,
+      );
+    }
+
+    final activeTasks = _tasks.where((t) => t.status != 'DONE').toList();
+    final doneTasks = _tasks.where((t) => t.status == 'DONE').toList();
+
+    return Column(
+      children: [
+        Expanded(
+          child: TaskListBase(
+            tasks: activeTasks,
+            onTaskStatusChanged: _handleStatusUpdate,
+            emptyListMessage: widget.emptyListMessage,
+            onTaskTap: widget.onTaskTap,
+          ),
+        ),
+        if (doneTasks.isNotEmpty)
+          InkWell(
+            onTap: () => setState(() => _showCompleted = !_showCompleted),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  Icon(
+                    _showCompleted
+                        ? Icons.expand_less
+                        : Icons.expand_more,
+                    size: 18,
+                    color: Colors.grey[600],
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _showCompleted
+                        ? 'Скрыть выполненные'
+                        : 'Выполнено (${doneTasks.length})',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        if (doneTasks.isNotEmpty && _showCompleted)
+          SizedBox(
+            height: 300,
+            child: TaskListBase(
+              tasks: doneTasks,
+              onTaskStatusChanged: _handleStatusUpdate,
+              emptyListMessage: '',
+              onTaskTap: widget.onTaskTap,
+            ),
+          ),
+      ],
     );
   }
 
