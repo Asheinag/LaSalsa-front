@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:kabachok_lasalsa_front/core/theme/app_colors.dart';
+import 'package:kabachok_lasalsa_front/core/theme/app_text_styles.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/widgets/task_list_base.dart';
@@ -169,7 +171,7 @@ class _TaskListViewState extends State<TaskListView> {
     }
     if (_error != null) {
       return Center(
-        child: Text(_error!, style: const TextStyle(color: Colors.red)),
+        child: Text(_error!, style: AppTextStyles.bodyText.copyWith(color: AppColors.accent)),
       );
     }
 
@@ -196,27 +198,28 @@ class _TaskListViewState extends State<TaskListView> {
           ),
         ),
         if (doneTasks.isNotEmpty)
-          InkWell(
+          GestureDetector(
             onTap: () => setState(() => _showCompleted = !_showCompleted),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                children: [
-                  Icon(
-                    _showCompleted
-                        ? Icons.expand_less
-                        : Icons.expand_more,
-                    size: 18,
-                    color: Colors.grey[600],
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    _showCompleted
-                        ? 'Скрыть выполненные'
-                        : 'Выполнено (${doneTasks.length})',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                  ),
-                ],
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  children: [
+                    Icon(
+                      _showCompleted ? Icons.expand_less : Icons.expand_more,
+                      size: 18,
+                      color: AppColors.textMuted,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _showCompleted
+                          ? 'Скрыть выполненные'
+                          : 'Выполнено (${doneTasks.length})',
+                      style: AppTextStyles.bodyText.copyWith(color: AppColors.textMuted),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -236,19 +239,41 @@ class _TaskListViewState extends State<TaskListView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title), // Используем переданный заголовок
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+    final taskCount = _tasks.where((t) => t.status != 'DONE').length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildHeader(taskCount),
+        Expanded(child: _buildBody()),
+        QuickAddTaskBar(
+          onTaskSubmitted: _handleAddTask,
+          initialValue: widget.initialValue,
+          initialDate: widget.initialDate,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeader(int taskCount) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 17, 22, 13),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.borderLight)),
       ),
-      body: Column(
+      child: Row(
         children: [
-          Expanded(child: _buildBody()),
-          QuickAddTaskBar(
-            onTaskSubmitted: _handleAddTask,
-            initialValue: widget.initialValue,
-            initialDate: widget.initialDate,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(widget.title, style: AppTextStyles.screenTitle),
+                const SizedBox(height: 2),
+                Text(
+                  '$taskCount активных',
+                  style: AppTextStyles.bodySmall.copyWith(fontSize: 12.5),
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -1,170 +1,132 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get_it/get_it.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
-import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
-import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
-import 'package:kabachok_lasalsa_front/core/models/project.dart';
-import 'package:kabachok_lasalsa_front/core/models/task.dart';
-import 'package:kabachok_lasalsa_front/core/widgets/basic_detail_view.dart';
-import 'package:kabachok_lasalsa_front/features/project/presentation/widgets/project_details_view.dart';
 import 'package:kabachok_lasalsa_front/features/shell/presentation/widgets/right_sidebar.dart';
-import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/task_detail_view.dart';
-
-@GenerateMocks([TaskService, ProjectService])
-import 'right_sidebar_test.mocks.dart';
 
 void main() {
-  final getIt = GetIt.instance;
-
-  setUp(() {
-    final mockTaskService = MockTaskService();
-    final mockProjectService = MockProjectService();
-    when(mockTaskService.taskUpdates).thenAnswer((_) => const Stream.empty());
-    when(mockTaskService.taskDeletions).thenAnswer((_) => const Stream.empty());
-    when(
-      mockProjectService.projectUpdates,
-    ).thenAnswer((_) => const Stream.empty());
-    when(
-      mockProjectService.projectDeletions,
-    ).thenAnswer((_) => const Stream.empty());
-    getIt.registerSingleton<TaskService>(mockTaskService);
-    getIt.registerSingleton<ProjectService>(mockProjectService);
-  });
-
-  tearDown(() {
-    getIt.reset();
-  });
-
   group('RightSidebar Tests', () {
-    final testTask = Task(
-      id: '1',
-      name: 'Test Task Name',
-      description: 'Test Task Description',
-      status: 'TODO',
-      projectId: '1',
-    );
-
-    final testProject = Project(
-      id: '1',
-      name: 'Test Project Name',
-      description: 'Test Project Description',
-      status: 'ACTIVE',
-      colorId: '1',
-    );
-
-    testWidgets('should render TaskDetailView when selectedTask is provided', (
-      tester,
-    ) async {
-      // ARRANGE
+    testWidgets('starts collapsed by default', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
-            body: RightSidebar(
-              selectedTask: testTask,
-              selectedProject: null,
-              onTaskUpdate: (_) async {},
-              onProjectUpdate: (_) async {},
-              allProjects: [],
-              onClose: () {},
-              onTaskDelete: () {},
-              onProjectDelete: () {},
-            ),
+            body: RightSidebar(child: Text('Inspector content')),
           ),
         ),
       );
 
-      // ASSERT
-      expect(find.byType(TaskDetailView), findsOneWidget);
-      expect(find.byType(ProjectDetailsView), findsNothing);
-      expect(find.byType(BasicDetailView), findsNothing);
+      final panelWidth = tester.getSize(find.byType(AnimatedContainer)).width;
+      expect(panelWidth, 0.0);
     });
 
-    testWidgets(
-      'should render ProjectDetailsView when selectedProject is provided',
-      (tester) async {
-        // ARRANGE
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: RightSidebar(
-                selectedTask: null,
-                selectedProject: testProject,
-                onTaskUpdate: (_) async {},
-                onProjectUpdate: (_) async {},
-                allProjects: [],
-                onClose: () {},
-                onTaskDelete: () {},
-                onProjectDelete: () {},
-              ),
-            ),
-          ),
-        );
-
-        // ASSERT
-        expect(find.byType(ProjectDetailsView), findsOneWidget);
-        expect(find.byType(TaskDetailView), findsNothing);
-        expect(find.byType(BasicDetailView), findsNothing);
-      },
-    );
-
-    testWidgets('should render BasicDetailView when nothing is selected', (
-      tester,
-    ) async {
-      // ARRANGE
+    testWidgets('expands when strip is tapped', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
-            body: RightSidebar(
-              selectedTask: null,
-              selectedProject: null,
-              onTaskUpdate: (_) async {},
-              onProjectUpdate: (_) async {},
-              allProjects: [],
-              onClose: () {},
-              onTaskDelete: () {},
-              onProjectDelete: () {},
-            ),
+            body: RightSidebar(child: Text('Inspector content')),
           ),
         ),
       );
 
-      // ASSERT
-      expect(find.byType(BasicDetailView), findsOneWidget);
-      expect(find.byType(TaskDetailView), findsNothing);
-      expect(find.byType(ProjectDetailsView), findsNothing);
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+
+      final panelWidth = tester.getSize(find.byType(AnimatedContainer)).width;
+      expect(panelWidth, greaterThan(0));
     });
 
-    testWidgets('should call onClose when close button is tapped', (
-      tester,
-    ) async {
-      // ARRANGE
-      bool isClosed = false;
+    testWidgets('collapses when strip is tapped while expanded', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: RightSidebar(child: Text('Inspector content')),
+          ),
+        ),
+      );
+
+      // First tap: expand
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+      expect(tester.getSize(find.byType(AnimatedContainer)).width, greaterThan(0));
+
+      // Second tap: collapse
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+      expect(tester.getSize(find.byType(AnimatedContainer)).width, 0.0);
+    });
+
+    testWidgets('auto-expands when selectionKey changes from null to a value', (tester) async {
+      String? selectionKey;
+      late StateSetter stateSetter;
+
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: RightSidebar(
-              selectedTask: null,
-              selectedProject: null,
-              onClose: () {
-                isClosed = true;
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                stateSetter = setState;
+                return RightSidebar(
+                  selectionKey: selectionKey,
+                  child: const Text('Inspector content'),
+                );
               },
-              onTaskDelete: () {},
-              onProjectDelete: () {},
             ),
           ),
         ),
       );
 
-      // ACT
-      final closeButton = find.byIcon(Icons.close);
-      expect(closeButton, findsOneWidget);
-      await tester.tap(closeButton);
+      expect(tester.getSize(find.byType(AnimatedContainer)).width, 0.0);
 
-      // ASSERT
-      expect(isClosed, isTrue);
+      stateSetter(() => selectionKey = 'task-123');
+      await tester.pumpAndSettle();
+
+      expect(tester.getSize(find.byType(AnimatedContainer)).width, greaterThan(0));
+    });
+
+    testWidgets('auto-expands when selectionKey changes from one task to another', (tester) async {
+      String? selectionKey = 'task-1';
+      late StateSetter stateSetter;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                stateSetter = setState;
+                return RightSidebar(
+                  selectionKey: selectionKey,
+                  child: const Text('Inspector content'),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      // Collapse manually
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+      expect(tester.getSize(find.byType(AnimatedContainer)).width, greaterThan(0));
+
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+      expect(tester.getSize(find.byType(AnimatedContainer)).width, 0.0);
+
+      // Change to different task — should auto-expand again
+      stateSetter(() => selectionKey = 'task-2');
+      await tester.pumpAndSettle();
+      expect(tester.getSize(find.byType(AnimatedContainer)).width, greaterThan(0));
+    });
+
+    testWidgets('shows empty state text when no child provided and expanded', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: RightSidebar()),
+        ),
+      );
+
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Выбери задачу\nчтобы открыть инспектор'), findsOneWidget);
     });
   });
 }

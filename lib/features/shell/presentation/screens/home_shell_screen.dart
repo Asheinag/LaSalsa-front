@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 // Импорты моделей
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
@@ -6,6 +7,9 @@ import 'package:kabachok_lasalsa_front/core/models/task.dart';
 // Импорты виджетов
 import 'package:kabachok_lasalsa_front/features/shell/presentation/widgets/app_sidebar.dart';
 import 'package:kabachok_lasalsa_front/features/shell/presentation/widgets/right_sidebar.dart';
+import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/task_detail_view.dart';
+import 'package:kabachok_lasalsa_front/features/project/presentation/widgets/project_details_view.dart';
+import 'package:kabachok_lasalsa_front/core/widgets/basic_detail_view.dart';
 // Импорты сервисов
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
@@ -20,8 +24,9 @@ import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 class HomeShellScreen extends StatefulWidget {
   final ProjectService? projectService;
   final TaskService? taskService;
+  final FirebaseAuth? auth;
 
-  const HomeShellScreen({super.key, this.projectService, this.taskService});
+  const HomeShellScreen({super.key, this.projectService, this.taskService, this.auth});
 
   @override
   State<HomeShellScreen> createState() => _HomeShellScreenState();
@@ -235,61 +240,58 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     }
   }
 
+  Widget _buildInspectorContent() {
+    if (_selectedTask != null) {
+      return TaskDetailView(
+        task: _selectedTask,
+        projects: _projects,
+        taskService: _taskService,
+        onTaskUpdated: _handleTaskUpdate,
+        onDelete: () => _onTaskDeleted(_selectedTask!.id),
+        onClose: () => setState(() => _selectedTask = null),
+      );
+    }
+    if (_selectedProject != null) {
+      return ProjectDetailsView(
+        project: _selectedProject,
+        projectService: _projectService,
+        onDelete: () => _onProjectDeleted(_selectedProject!.id),
+        onProjectUpdated: _handleProjectUpdate,
+        onClose: () => setState(() => _selectedProject = null),
+      );
+    }
+    return const BasicDetailView();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Определяем ширину экрана
-    final width = MediaQuery.of(context).size.width;
-    final isDesktop = width > 900;
-
     return Scaffold(
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 1. Сайдбар
           _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const SizedBox.shrink()
               : AppSidebar(
-                  projects: _projects
-                      .where((p) => p.status == 'ACTIVE')
-                      .toList(), // только активные проекты
-                  onPageSelected:
-                      _onPageChanged, // <-- Передаем метод переключения страниц
+                  projects: _projects,
+                  onPageSelected: _onPageChanged,
                   onProjectCreated: (newProject) {
-                    setState(() {
-                      _projects.add(newProject);
-                    });
+                    setState(() => _projects.add(newProject));
                   },
                   projectService: _projectService,
+                  selectedPageId: _selectedPageId,
+                  selectedProjectId: _selectedProject?.id,
+                  auth: widget.auth,
                 ),
-          const VerticalDivider(width: 1, thickness: 1),
 
           // 2. Основной контент
-          Expanded(flex: 5, child: _buildActiveScreen()),
+          Expanded(child: _buildActiveScreen()),
 
-          // 3. Правая колонка с инспектором задачи
-          if (isDesktop) ...[
-            // Показываем только на широком экране
-            const VerticalDivider(width: 1, thickness: 1),
-            RightSidebar(
-              selectedTask: _selectedTask,
-              selectedProject: _selectedProject,
-              onTaskUpdate: _handleTaskUpdate,
-              onProjectUpdate: _handleProjectUpdate,
-              allProjects: _projects,
-              onClose: () {
-                setState(() {
-                  _selectedTask = null;
-                  _selectedProject = null;
-                });
-              },
-              onTaskDelete: () {
-                _onTaskDeleted(_selectedTask!.id);
-              },
-              onProjectDelete: () {
-                _onProjectDeleted(_selectedProject!.id);
-              },
-            ),
-          ],
+          // 3. Инспектор (всегда присутствует, сворачивается до полоски)
+          RightSidebar(
+            selectionKey: _selectedTask?.id ?? _selectedProject?.id,
+            child: _buildInspectorContent(),
+          ),
         ],
       ),
     );

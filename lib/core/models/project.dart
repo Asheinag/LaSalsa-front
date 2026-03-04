@@ -50,8 +50,8 @@ class Project {
       id: json['id'].toString(),
       name: json['name'],
       description: json['description'],
-      status: json['status'] ?? 'ACTIVE',
-      type: json['type'] ?? 'LIST',
+      status: (json['status'] as String? ?? 'ACTIVE').toUpperCase(),
+      type: (json['type'] as String? ?? 'LIST').toUpperCase(),
       parentId: json['parent_id']?.toString(),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])

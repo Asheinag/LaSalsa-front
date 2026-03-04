@@ -4,16 +4,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:kabachok_lasalsa_front/features/shell/presentation/screens/home_shell_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
 
-@GenerateMocks([ProjectService, TaskService])
+@GenerateMocks([ProjectService, TaskService, FirebaseAuth])
 import 'home_shell_screen_test.mocks.dart';
 
 void main() {
   late MockProjectService mockProjectService;
   late MockTaskService mockTaskService;
+  late MockFirebaseAuth mockFirebaseAuth;
   late StreamController<Project> projectUpdateController;
   late StreamController<String> projectDeleteController;
   late StreamController<String> taskDeleteController;
@@ -21,6 +23,8 @@ void main() {
   setUp(() {
     mockProjectService = MockProjectService();
     mockTaskService = MockTaskService();
+    mockFirebaseAuth = MockFirebaseAuth();
+    when(mockFirebaseAuth.currentUser).thenReturn(null);
     projectUpdateController = StreamController<Project>.broadcast();
     projectDeleteController = StreamController<String>.broadcast();
     taskDeleteController = StreamController<String>.broadcast();
@@ -82,6 +86,7 @@ void main() {
           home: HomeShellScreen(
             projectService: mockProjectService,
             taskService: mockTaskService,
+            auth: mockFirebaseAuth,
           ),
         ),
       );
@@ -105,6 +110,9 @@ void main() {
   testWidgets('HomeShellScreen switches to Inbox when selected project is deleted', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(1600, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
     // ARRANGE
     final project = Project(
       id: '1',
@@ -120,6 +128,7 @@ void main() {
         home: HomeShellScreen(
           projectService: mockProjectService,
           taskService: mockTaskService,
+          auth: mockFirebaseAuth,
         ),
       ),
     );
@@ -170,6 +179,7 @@ void main() {
           home: HomeShellScreen(
             projectService: mockProjectService,
             taskService: mockTaskService,
+            auth: mockFirebaseAuth,
           ),
         ),
       );
@@ -207,6 +217,7 @@ void main() {
           home: HomeShellScreen(
             projectService: mockProjectService,
             taskService: mockTaskService,
+            auth: mockFirebaseAuth,
           ),
         ),
       );
@@ -226,6 +237,9 @@ void main() {
   testWidgets(
     'При архивации текущего проекта переключается на Входящие',
     (tester) async {
+      tester.view.physicalSize = const Size(1600, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
       // ARRANGE
       final project = Project(
         id: '1',
@@ -257,6 +271,7 @@ void main() {
           home: HomeShellScreen(
             projectService: mockProjectService,
             taskService: mockTaskService,
+            auth: mockFirebaseAuth,
           ),
         ),
       );

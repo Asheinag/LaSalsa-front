@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/features/shell/presentation/widgets/app_sidebar.dart';
 
-@GenerateMocks([ProjectService])
+@GenerateMocks([ProjectService, FirebaseAuth])
 import 'app_sidebar_test.mocks.dart';
 
 void main() {
   late MockProjectService mockProjectService;
+  late MockFirebaseAuth mockFirebaseAuth;
 
   setUp(() {
     mockProjectService = MockProjectService();
+    mockFirebaseAuth = MockFirebaseAuth();
+    when(mockFirebaseAuth.currentUser).thenReturn(null);
   });
 
   testWidgets('AppSidebar creates project with selected color', (tester) async {
@@ -36,6 +40,7 @@ void main() {
             onPageSelected: (page, {args}) {},
             onProjectCreated: (newProject) {},
             projectService: mockProjectService,
+            auth: mockFirebaseAuth,
           ),
         ),
       ),
@@ -60,7 +65,7 @@ void main() {
     ).called(1);
   });
 
-  testWidgets('AppSidebar displays logout button', (tester) async {
+  testWidgets('AppSidebar displays logout avatar with tooltip', (tester) async {
     // ARRANGE
     await tester.pumpWidget(
       MaterialApp(
@@ -69,14 +74,15 @@ void main() {
             projects: [],
             onPageSelected: (page, {args}) {},
             projectService: mockProjectService,
+            auth: mockFirebaseAuth,
           ),
         ),
       ),
     );
 
-    // ACT & ASSERT
-    expect(find.text('Выход'), findsOneWidget);
-    expect(find.byIcon(Icons.logout), findsOneWidget);
+    // ACT & ASSERT: user avatar with tooltip is shown (user is null → '?' initials)
+    expect(find.byTooltip('Выйти ()'), findsOneWidget);
+    expect(find.text('?'), findsOneWidget);
   });
 
   testWidgets('AppSidebar navigates to today page', (tester) async {
@@ -92,6 +98,7 @@ void main() {
               selectedPage = page;
             },
             projectService: mockProjectService,
+            auth: mockFirebaseAuth,
           ),
         ),
       ),
@@ -118,6 +125,7 @@ void main() {
               selectedPage = page;
             },
             projectService: mockProjectService,
+            auth: mockFirebaseAuth,
           ),
         ),
       ),

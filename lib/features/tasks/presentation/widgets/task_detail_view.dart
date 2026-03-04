@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
+import 'package:kabachok_lasalsa_front/core/theme/app_colors.dart';
+import 'package:kabachok_lasalsa_front/core/theme/app_text_styles.dart';
 import 'package:kabachok_lasalsa_front/core/theme/project_colors.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/injection_container.dart';
-// Дебаг
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
+import 'package:kabachok_lasalsa_front/features/ai_review/presentation/widgets/ai_review_card.dart';
 
 class TaskDetailView extends StatefulWidget {
   final Task? task;
@@ -37,123 +39,55 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   StreamSubscription<Task>? _taskSubscription;
   late Task _task;
   Timer? _debounceTimer;
-
   bool _isSaving = false;
   late final TaskService _taskService;
-
-  Future<void> _performUpdate(Task updatedTask) async {
-    if (widget.onTaskUpdated == null) return;
-
-    setState(() {
-      _isSaving = true; // Показываем крутилку
-    });
-
-    try {
-      // Ждем, пока HomeShellScreen сходит на сервер
-      await Future.wait([
-        // 1. Реальная работа (отправка на бэк)
-        widget.onTaskUpdated!(updatedTask),
-
-        // 2. Искусственная пауза (минимум 800мс или 1 сек, чтобы глаз заметил)
-        Future.delayed(const Duration(milliseconds: 800)),
-      ]);
-    } catch (e) {
-      // Ошибки обработает родитель, но нам надо убрать крутилку
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSaving = false; // Прячем крутилку
-        });
-      }
-    }
-  }
-
-  void _subscribeToTaskUpdates() {
-    // 1. Обязательно отменяем старую подписку, если она была
-    _taskSubscription?.cancel();
-
-    // 2. Создаем новую, которая слушает ID текущей (новой) задачи
-    _taskSubscription = _taskService.taskUpdates
-        .where((updatedTask) => updatedTask.id == _task.id)
-        .listen(_onTaskUpdated);
-  }
 
   @override
   void initState() {
     super.initState();
     _task = widget.task!;
     _taskService = widget.taskService ?? getIt<TaskService>();
-    _nameController = TextEditingController();
-    _descriptionController = TextEditingController();
+    _nameController = TextEditingController(text: _task.name);
+    _descriptionController = TextEditingController(text: _task.description);
     _subscribeToTaskUpdates();
     _getTaskDetails();
-    _updateControllers();
   }
 
-  void _onTaskUpdated(Task updatedTask) {
-    if (!mounted) return;
-    setState(() {
-      _task = updatedTask;
+  void _subscribeToTaskUpdates() {
+    _taskSubscription?.cancel();
+    _taskSubscription = _taskService.taskUpdates
+        .where((t) => t.id == _task.id)
+        .listen((t) {
+      if (!mounted) return;
+      setState(() => _task = t);
     });
   }
 
-  // Если родитель передал новую задачу (пользователь кликнул на другую строку),
-  // мы должны обновить текст в полях.
   @override
   void didUpdateWidget(covariant TaskDetailView oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    // Если ID изменился (пользователь выбрал другую задачу)
     if (widget.task?.id != oldWidget.task?.id) {
-      // 1. Отменяем старые таймеры
       _debounceTimer?.cancel();
-
-      // 2. ВАЖНО: Явно обновляем локальную переменную _task на новую
       _task = widget.task!;
-
-      // 3. ВАЖНО: Переподписываемся на события новой задачи
       _subscribeToTaskUpdates();
-
-      // 4. Обновляем контроллеры (теперь они возьмут данные из новой _task)
-      _updateControllers();
-
-      // 5. Загружаем полные данные с сервера
+      _nameController.text = _task.name;
+      _descriptionController.text = _task.description;
       _getTaskDetails();
     }
   }
 
   Future<void> _getTaskDetails() async {
-    logger.i('Get task details');
-    logger.i('Projects - ${widget.projects.length}');
     if (widget.task == null) return;
-    setState(() {});
     try {
-      final detailedTask = await _taskService.getTaskDetails(taskId: _task.id);
+      final detailed = await _taskService.getTaskDetails(taskId: _task.id);
       if (mounted) {
         setState(() {
-          // Обновляем контроллеры
-          logger.i('Update controllers');
-          _nameController.text = detailedTask.name;
-          _descriptionController.text = detailedTask.description;
+          _nameController.text = detailed.name;
+          _descriptionController.text = detailed.description;
         });
       }
     } catch (e) {
-      // Ошибка загрузки деталей задачи
-      if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Ошибка загрузки задачи: $e')));
-        });
-      }
-    }
-  }
-
-  void _updateControllers() {
-    if (widget.task != null) {
-      // Важно: ставим курсор, чтобы не сбивался, но тут просто обновляем текст
-      _nameController.text = _task.name;
-      _descriptionController.text = _task.description;
+      logger.e('Ошибка загрузки деталей задачи: $e');
     }
   }
 
@@ -166,336 +100,482 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     super.dispose();
   }
 
-  // Логика автосохранения
-  void _onFieldChanged() {
-    // 1. Отменяем предыдущий таймер, если пользователь продолжает печатать
-    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
-
-    // 2. Запускаем новый таймер на 2 секунды
-    _debounceTimer = Timer(const Duration(milliseconds: 2000), () {
-      _saveChanges();
-    });
+  Future<void> _performUpdate(Task updatedTask) async {
+    if (widget.onTaskUpdated == null) return;
+    setState(() => _isSaving = true);
+    try {
+      await Future.wait([
+        widget.onTaskUpdated!(updatedTask),
+        Future.delayed(const Duration(milliseconds: 800)),
+      ]);
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
-  // Метод отправки изменений (вызывается таймером или сменой фокуса)
+  void _onFieldChanged() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 2000), _saveChanges);
+  }
+
   void _saveChanges() {
     if (widget.task == null) return;
-
-    // Собираем новую версию задачи
-    // (В реале лучше слать только diff, но пока обновим объект целиком локально)
-    final updatedTask = _task.copyWith(
+    _performUpdate(_task.copyWith(
       name: _nameController.text.trim(),
       description: _descriptionController.text.trim(),
-      // Остальные поля пока старые
-    );
-
-    // Вызываем коллбек родителя, который дернет API
-    _performUpdate(updatedTask);
+    ));
   }
 
-  // Изменение проекта (без таймера, сразу сохраняем)
+  void _toggleStatus() {
+    final isDone = _task.status == 'DONE';
+    _performUpdate(_task.copyWith(
+      status: isDone ? 'TODO' : 'DONE',
+      closedAt: isDone ? null : DateTime.now(),
+    ));
+  }
+
   void _changeProject(String? newProjectId) {
-    if (widget.task == null || newProjectId == null) return;
-    final updatedTask = _task.copyWith(projectId: newProjectId);
-    _performUpdate(updatedTask);
+    if (newProjectId == null) return;
+    _performUpdate(_task.copyWith(projectId: newProjectId));
   }
 
-  // Изменение даты (без таймера, сразу сохраняем)
-  Future<void> _changePlannedDate(BuildContext context) async {
-    if (widget.task == null) return;
-
+  Future<void> _changePlannedDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _task.plannedAt ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
-
     if (picked != null) {
-      // Добавляем время (пока ставим конец дня или текущее)
       final newDate = DateTime(picked.year, picked.month, picked.day, 12, 0);
-      final updatedTask = _task.copyWith(plannedAt: newDate);
-      _performUpdate(updatedTask);
+      _performUpdate(_task.copyWith(plannedAt: newDate));
     }
   }
 
   Future<void> _deleteTask() async {
     if (widget.task == null) return;
-
     try {
       await _taskService.deleteTask(taskId: _task.id);
-      if (mounted && widget.onDelete != null) {
-        widget.onDelete!();
-      }
+      if (mounted) widget.onDelete?.call();
     } catch (e) {
       if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Ошибка удаления задачи: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ошибка удаления: $e')),
+          );
         });
       }
     }
   }
 
-  void _toggleStatus(bool? isDone) {
-    if (widget.task == null || isDone == null) return;
-
-    final newStatus = isDone ? 'DONE' : 'TODO';
-    // Локально обновляем дату завершения для мгновенного отклика UI
-    final newClosedAt = isDone ? DateTime.now() : null;
-
-    final updatedTask = _task.copyWith(
-      status: newStatus,
-      closedAt: newClosedAt,
-    );
-
-    _performUpdate(updatedTask);
-  }
+  // ─── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    // Находим текущий проект для Dropdown
-    logger.i('Current project id is ${_task.projectId}');
-    final currentProjectId = _task.projectId;
-
-    // Основная верстка деталей
     return Container(
-      color: Colors.white, // Фон инспектора
+      color: AppColors.bgPanel,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // --- ШАПКА ---
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Детали задачи',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelLarge?.copyWith(color: Colors.grey),
-                  ),
-                ),
-                if (widget.onDelete != null) ...[
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.redAccent),
-                    onPressed: _deleteTask,
-                  ),
-                ],
-                if (widget.onClose != null)
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: widget.onClose,
-                  ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-
-          // --- СКРОЛЛЯЩИЙСЯ КОНТЕНТ ---
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(24.0),
-              children: [
-                // 1. ВЫБОР ПРОЕКТА (DROPDOWN)
-                DropdownButtonFormField<String>(
-                  initialValue:
-                      currentProjectId, // Если null, будет выбрано "Без проекта" (если добавить такой item)
-                  decoration: const InputDecoration(
-                    labelText: 'Проект',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                  ),
-                  items: widget.projects.map((p) {
-                    return DropdownMenuItem(
-                      value: p.id,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.circle,
-                            color: ProjectColorData.getColor(
-                              context,
-                              int.tryParse(p.colorId ?? '0') ?? 0,
-                            ),
-                            size: 12,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(p.name),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: _changeProject,
-                ),
-
-                const SizedBox(height: 24),
-
-                // 2. НАЗВАНИЕ (TextField)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4.0, right: 8.0),
-                      // 2.1
-                      child: Transform.scale(
-                        scale: 1.2,
-                        child: Checkbox(
-                          shape: const CircleBorder(),
-                          value: _task.status == 'DONE',
-                          onChanged: _toggleStatus,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _nameController,
-                        onChanged: (_) =>
-                            _onFieldChanged(), // Запускаем дебаунс
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        decoration: const InputDecoration(
-                          hintText: 'Название задачи',
-                          border: InputBorder
-                              .none, // Убираем рамку, чтобы было чисто
-                        ),
-                        maxLines: null,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // 3. ДАТА (Интерактивная строка)
-                InkWell(
-                  onTap: () => _changePlannedDate(context),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_today,
-                          size: 18,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _task.plannedAt != null
-                              ? DateFormat(
-                                  'dd MMM yyyy',
-                                ).format(_task.plannedAt!)
-                              : 'Добавить плановую дату завершения',
-                          style: TextStyle(
-                            color: _task.plannedAt != null
-                                ? _task.plannedAt!.isBefore(DateTime.now())
-                                      ? Colors.deepOrange[700]
-                                      : Colors.blueGrey[800]
-                                : Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Доп. даты: завершено
-                if (_task.closedAt != null) ...[
-                  const SizedBox(height: 12),
-                  _buildDateRow(
-                    context,
-                    'Завершено',
-                    _task.closedAt!,
-                    isDone: true,
-                  ),
-                ],
-
-                const SizedBox(height: 32),
-                const Divider(),
-                const SizedBox(height: 16),
-
-                // 4. ОПИСАНИЕ (TextField)
-                TextField(
-                  controller: _descriptionController,
-                  onChanged: (_) => _onFieldChanged(),
-                  decoration: const InputDecoration(
-                    hintText: 'Добавьте описание...',
-                    border: InputBorder.none,
-                  ),
-                  maxLines: null, // Растягивается
-                  style: const TextStyle(fontSize: 16, height: 1.5),
-                ),
-              ],
-            ),
-          ),
-          if (_isSaving)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                border: Border(top: BorderSide(color: Colors.grey[200]!)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    'Сохранение...',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                  ),
-                  const SizedBox(width: 12),
-                  const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.grey, // Делаем нейтральным цветом
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            // Можно показывать "Сохранено" на пару секунд,
-            // но пока просто пустой отступ для красоты
-            const SizedBox(height: 1),
+          _buildHeader(),
+          Expanded(child: _buildBody()),
+          _buildFooter(),
         ],
       ),
     );
   }
 
-  Widget _buildDateRow(
-    BuildContext context,
-    String label,
-    DateTime date, {
-    bool isDone = false,
-  }) {
-    final dateFormat = DateFormat('dd MMM yyyy, HH:mm'); // Нужен package:intl
+  // ─── Шапка ───────────────────────────────────────────────────────────────
+
+  Widget _buildHeader() {
+    final currentProject = widget.projects
+        .where((p) => p.id == _task.projectId)
+        .firstOrNull;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.borderLight)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Название + кнопка закрытия
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _nameController,
+                  onChanged: (_) => _onFieldChanged(),
+                  style: AppTextStyles.inspectorTitle,
+                  decoration: const InputDecoration(
+                    hintText: 'Название задачи',
+                    hintStyle: TextStyle(color: AppColors.textMuted),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  maxLines: null,
+                ),
+              ),
+              if (widget.onClose != null)
+                GestureDetector(
+                  onTap: widget.onClose,
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: AppColors.bg,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.close,
+                        size: 14,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          // Теги: проект + статус
+          Row(
+            children: [
+              if (currentProject != null) ...[
+                _ProjectTag(project: currentProject),
+                const SizedBox(width: 5),
+              ],
+              _StatusTag(isDone: _task.status == 'DONE', onTap: _toggleStatus),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Тело ─────────────────────────────────────────────────────────────────
+
+  Widget _buildBody() {
+    final dateFormat = DateFormat('dd MMM yyyy');
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Секция: Детали ──
+          _SectionLabel(label: 'Детали'),
+          const SizedBox(height: 6),
+
+          _FieldRow(
+            label: 'Проект',
+            child: widget.projects.isEmpty
+                ? Text('—', style: AppTextStyles.bodyText.copyWith(color: AppColors.textPrimary))
+                : DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _task.projectId,
+                      isDense: true,
+                      style: AppTextStyles.bodyText.copyWith(color: AppColors.textPrimary),
+                      items: widget.projects.map((p) {
+                        return DropdownMenuItem(
+                          value: p.id,
+                          child: Row(children: [
+                            Icon(
+                              Icons.circle,
+                              size: 9,
+                              color: ProjectColorData.getColor(
+                                context,
+                                int.tryParse(p.colorId ?? '0') ?? 0,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(p.name, style: AppTextStyles.bodyText.copyWith(color: AppColors.textPrimary)),
+                          ]),
+                        );
+                      }).toList(),
+                      onChanged: _changeProject,
+                    ),
+                  ),
+          ),
+
+          _FieldRow(
+            label: 'Дата',
+            child: GestureDetector(
+              onTap: _changePlannedDate,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: Text(
+                  _task.plannedAt != null
+                      ? dateFormat.format(_task.plannedAt!)
+                      : 'Не задана',
+                  style: AppTextStyles.bodyText.copyWith(
+                    color: _task.plannedAt != null
+                        ? (_task.plannedAt!.isBefore(DateTime.now())
+                            ? AppColors.tomato
+                            : AppColors.textPrimary)
+                        : AppColors.textMuted,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          if (_task.closedAt != null)
+            _FieldRow(
+              label: 'Завершено',
+              child: Text(
+                DateFormat('dd MMM yyyy, HH:mm').format(_task.closedAt!),
+                style: AppTextStyles.bodyText.copyWith(color: AppColors.green),
+              ),
+            ),
+
+          const SizedBox(height: 18),
+
+          // ── Секция: Описание ──
+          _SectionLabel(label: 'Описание'),
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(
+              color: AppColors.bg,
+              border: Border.all(color: AppColors.borderLight),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: TextField(
+              controller: _descriptionController,
+              onChanged: (_) => _onFieldChanged(),
+              style: AppTextStyles.bodyText.copyWith(
+                color: AppColors.textSecondary,
+                height: 1.6,
+              ),
+              decoration: const InputDecoration(
+                hintText: 'Добавьте описание...',
+                hintStyle: TextStyle(color: AppColors.textMuted),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+              maxLines: null,
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          // ── Секция: AI Review ──
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(child: _SectionLabel(label: 'AI Review')),
+              _AiButton(label: 'Обновить', onPressed: null),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const AiReviewCard(
+            verdict: 'Задача сформулирована размыто',
+            score: 6,
+            issues: ['Нет конкретного глагола действия'],
+            suggestion:
+                'Переформулируй: начни с глагола и укажи ожидаемый результат',
+            date: '25 фев, 14:32',
+          ),
+
+          const SizedBox(height: 18),
+
+          // ── Секция: Действия ──
+          _SectionLabel(label: 'Действия'),
+          const SizedBox(height: 6),
+          if (widget.onDelete != null)
+            GestureDetector(
+              onTap: _deleteTask,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: Row(children: [
+                    const Icon(Icons.delete_outline, size: 15, color: AppColors.accent),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Удалить задачу',
+                      style: AppTextStyles.bodyText.copyWith(color: AppColors.accent),
+                    ),
+                  ]),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Футер (статус сохранения) ────────────────────────────────────────────
+
+  Widget _buildFooter() {
+    if (!_isSaving) return const SizedBox(height: 1);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+      decoration: const BoxDecoration(
+        color: AppColors.bg,
+        border: Border(top: BorderSide(color: AppColors.borderLight)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text('Сохранение...', style: AppTextStyles.metaText),
+          const SizedBox(width: 10),
+          const SizedBox(
+            width: 13,
+            height: 13,
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Вспомогательные приватные виджеты ───────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String label;
+  const _SectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label.toUpperCase(),
+      style: AppTextStyles.sectionLabel,
+    );
+  }
+}
+
+class _FieldRow extends StatelessWidget {
+  final String label;
+  final Widget child;
+  const _FieldRow({required this.label, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(label, style: AppTextStyles.bodySmall),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectTag extends StatelessWidget {
+  final Project project;
+  const _ProjectTag({required this.project});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorIndex = int.tryParse(project.colorId ?? '0') ?? 0;
+    final dotColor = ProjectColorData.getColor(context, colorIndex);
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: 100,
-          child: Text(
-            label,
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
-          ),
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
         ),
+        const SizedBox(width: 4),
         Text(
-          dateFormat.format(date),
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: isDone ? Colors.green[700] : Colors.black87,
-            decoration: isDone ? TextDecoration.lineThrough : null,
-          ),
+          project.name,
+          style: AppTextStyles.metaText.copyWith(color: AppColors.textSecondary),
         ),
       ],
+    );
+  }
+}
+
+class _AiButton extends StatefulWidget {
+  final String label;
+  final VoidCallback? onPressed;
+  const _AiButton({required this.label, this.onPressed});
+
+  @override
+  State<_AiButton> createState() => _AiButtonState();
+}
+
+class _AiButtonState extends State<_AiButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: widget.onPressed != null
+          ? SystemMouseCursors.click
+          : SystemMouseCursors.basic,
+      child: GestureDetector(
+        onTap: widget.onPressed,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 130),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: _isHovered
+                ? const Color(0xFFF5D5D0)
+                : AppColors.accentLight,
+            border: Border.all(color: const Color(0xFFE8B5B0)),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            widget.label,
+            style: AppTextStyles.buttonText.copyWith(
+              color: AppColors.accent,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusTag extends StatelessWidget {
+  final bool isDone;
+  final VoidCallback onTap;
+  const _StatusTag({required this.isDone, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+          decoration: BoxDecoration(
+            color: isDone ? AppColors.greenLight : AppColors.bgHover,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            isDone ? 'Выполнено' : 'В работе',
+            style: AppTextStyles.tagLabel.copyWith(
+              color: isDone ? AppColors.green : AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

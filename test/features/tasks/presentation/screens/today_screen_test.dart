@@ -6,6 +6,7 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
+import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/task_checkbox.dart';
 import 'package:kabachok_lasalsa_front/features/today/presentation/screens/today_screen.dart';
 
 // Генерируем мок для Самого сервиса, а не для Dio
@@ -156,10 +157,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final checkboxFinder = find.descendant(
-      of: find.widgetWithText(ListTile, 'Task to be done'),
-      matching: find.byType(Checkbox),
-    );
+    final checkboxFinder = find.byType(TaskCheckbox);
 
     expect(checkboxFinder, findsOneWidget);
 

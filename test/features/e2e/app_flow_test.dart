@@ -7,19 +7,23 @@ import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/features/shell/presentation/screens/home_shell_screen.dart';
 import 'package:kabachok_lasalsa_front/features/shell/presentation/widgets/app_sidebar.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
 import 'app_flow_test.mocks.dart';
 
-@GenerateMocks([ProjectService, TaskService])
+@GenerateMocks([ProjectService, TaskService, FirebaseAuth])
 void main() {
   late MockProjectService mockProjectService;
   late MockTaskService mockTaskService;
+  late MockFirebaseAuth mockFirebaseAuth;
 
   setUp(() {
     mockProjectService = MockProjectService();
     mockTaskService = MockTaskService();
+    mockFirebaseAuth = MockFirebaseAuth();
+    when(mockFirebaseAuth.currentUser).thenReturn(null);
     when(
       mockProjectService.projectUpdates,
     ).thenAnswer((_) => const Stream.empty());
@@ -33,6 +37,9 @@ void main() {
   testWidgets('Create project, add task, and verify project color in inspector', (
     WidgetTester tester,
   ) async {
+    tester.view.physicalSize = const Size(1600, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
     // Arrange
     final projectName = 'Test Project';
     final taskName = 'Test Task';
@@ -85,6 +92,7 @@ void main() {
           child: HomeShellScreen(
             projectService: mockProjectService,
             taskService: mockTaskService,
+            auth: mockFirebaseAuth,
           ),
         ),
       ),

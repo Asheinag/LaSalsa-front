@@ -56,4 +56,4 @@ app.*.map.json
 
 # Claude
 CLAUDE.md
-.claude/*
+.claude

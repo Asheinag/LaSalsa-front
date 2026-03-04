@@ -1,84 +1,128 @@
 import 'package:flutter/material.dart';
-import 'package:kabachok_lasalsa_front/features/project/presentation/widgets/project_details_view.dart';
-import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/task_detail_view.dart';
-import 'package:kabachok_lasalsa_front/core/widgets/basic_detail_view.dart';
-import 'package:kabachok_lasalsa_front/core/models/project.dart';
-import 'package:kabachok_lasalsa_front/core/models/task.dart';
-// Дебаг
-import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
+import 'package:kabachok_lasalsa_front/core/theme/app_colors.dart';
+import 'package:kabachok_lasalsa_front/core/theme/app_text_styles.dart';
 
-class RightSidebar extends StatelessWidget {
-  final Task? selectedTask;
-  final Project? selectedProject;
-  final bool showBasicDetailView;
+class RightSidebar extends StatefulWidget {
+  final Widget? child;
+  /// Меняется при каждой смене выбранного элемента (id задачи или проекта).
+  /// null = ничего не выбрано.
+  final String? selectionKey;
 
-  final Future<void> Function(Task)? onTaskUpdate;
-  final Future<void> Function(Project)? onProjectUpdate;
+  const RightSidebar({super.key, this.child, this.selectionKey});
 
-  final List<Project> allProjects;
+  @override
+  State<RightSidebar> createState() => _RightSidebarState();
+}
 
-  final VoidCallback onClose;
-  final VoidCallback onTaskDelete;
-  final VoidCallback onProjectDelete;
+class _RightSidebarState extends State<RightSidebar> {
+  bool _isExpanded = false;
 
-  const RightSidebar({
-    super.key,
-    this.selectedTask,
-    this.selectedProject,
-    this.showBasicDetailView = false,
-    this.onTaskUpdate,
-    this.onProjectUpdate,
-    required this.onClose,
-    required this.onTaskDelete,
-    required this.onProjectDelete,
-    this.allProjects = const [],
-  });
+  @override
+  void didUpdateWidget(covariant RightSidebar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Авто-разворачиваем при любой смене выбранного элемента
+    if (widget.selectionKey != null &&
+        widget.selectionKey != oldWidget.selectionKey) {
+      setState(() => _isExpanded = true);
+    }
+  }
+
+  static const double _panelWidth = 348;
 
   @override
   Widget build(BuildContext context) {
-    logger.i('selected task is $selectedTask');
-    logger.i('All projects - ${allProjects.length}');
-    Widget content;
-    if (selectedTask != null) {
-      logger.i('SHOW TASK DETAIL VIEW');
-      content = TaskDetailView(
-        task: selectedTask,
-        projects: allProjects,
-        onTaskUpdated: onTaskUpdate,
-        onDelete: onTaskDelete,
-      );
-    } else if (selectedProject != null) {
-      logger.i('SHOW PROJECT DETAIL VIEW');
-      content = ProjectDetailsView(
-        project: selectedProject,
-        onDelete: onProjectDelete,
-        onProjectUpdated: onProjectUpdate,
-      );
-    } else {
-      content = BasicDetailView();
-    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildStrip(),
+        _buildPanel(),
+      ],
+    );
+  }
 
-    return Container(
-      width: 550,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(left: BorderSide(color: Colors.grey[300]!)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            height: 50,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: onClose,
-            ),
+  // ─── Полоска (всегда видима, 28px) ──────────────────────────────────────────
+
+  Widget _buildStrip() {
+    return GestureDetector(
+      onTap: () => setState(() => _isExpanded = !_isExpanded),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          width: 28,
+          decoration: const BoxDecoration(
+            color: AppColors.bgPanel,
+            border: Border(left: BorderSide(color: AppColors.border)),
           ),
-          const Divider(height: 1),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              // Стрелка вверху
+              Padding(
+                padding: const EdgeInsets.only(top: 14, bottom: 6),
+                child: AnimatedRotation(
+                  turns: _isExpanded ? 0 : 0.5,
+                  duration: const Duration(milliseconds: 220),
+                  child: const Icon(
+                    Icons.chevron_right,
+                    size: 14,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ),
+              // Вертикальный текст "Инспектор" (исчезает когда открыто)
+              AnimatedOpacity(
+                opacity: _isExpanded ? 0 : 1,
+                duration: const Duration(milliseconds: 180),
+                child: RotatedBox(
+                  quarterTurns: 1,
+                  child: Text(
+                    'ИНСПЕКТОР',
+                    style: AppTextStyles.sidebarLabel,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-          // КОНКРЕТНЫЙ КОНТЕНТ
-          Expanded(child: content),
+  // ─── Панель инспектора (348px ↔ 0px) ────────────────────────────────────────
+
+  Widget _buildPanel() {
+    return ClipRect(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.ease,
+        width: _isExpanded ? _panelWidth : 0,
+        decoration: const BoxDecoration(
+          color: AppColors.bgPanel,
+          border: Border(left: BorderSide(color: AppColors.borderLight)),
+        ),
+        child: SizedBox(
+          width: _panelWidth,
+          child: widget.child ?? _buildEmptyState(),
+        ),
+      ),
+    );
+  }
+
+  // ─── Пустое состояние ───────────────────────────────────────────────────────
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('☝️', style: TextStyle(fontSize: 28)),
+          const SizedBox(height: 12),
+          Text(
+            'Выбери задачу\nчтобы открыть инспектор',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodyText.copyWith(color: AppColors.textMuted),
+          ),
         ],
       ),
     );

@@ -1,47 +1,76 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
+import 'package:kabachok_lasalsa_front/core/theme/app_colors.dart';
 import 'package:kabachok_lasalsa_front/core/widgets/task_list_item.dart';
 
 class TaskListBase extends StatelessWidget {
-  final List<Task> tasks; // Список задач, который нужно отобразить
-  final String emptyListMessage; // Сообщение, если список пуст
+  final List<Task> tasks;
+  final String emptyListMessage;
   final Function(Task task, String newStatus) onTaskStatusChanged;
   final Function(Task)? onTaskTap;
+  final Task? selectedTask;
 
   const TaskListBase({
     super.key,
     required this.tasks,
     required this.onTaskStatusChanged,
-    this.emptyListMessage = "Здесь пока нет задач",
+    this.emptyListMessage = 'Здесь пока нет задач',
     this.onTaskTap,
+    this.selectedTask,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Если список задач пуст, показываем сообщение
     if (tasks.isEmpty) {
-      return Center(child: Text(emptyListMessage));
+      return _EmptyState(message: emptyListMessage);
     }
 
-    // Если в списке есть задачи, используем ListView.builder
-    // Это самый эффективный способ отображения списков
     return ListView.builder(
-      // Указываем, сколько всего элементов будет в списке
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       itemCount: tasks.length,
-      // itemBuilder - это функция, которая будет вызвана для каждого элемента.
-      // Она строит виджет для элемента с определенным `index`.
-      itemBuilder: (BuildContext context, int index) {
-        // 1. Берем конкретную задачу из списка по ее индексу
+      itemBuilder: (context, index) {
         final task = tasks[index];
-        // 2. Возвращаем наш виджет TaskListItem, передав в него эту задачу
         return TaskListItem(
           task: task,
-          onStatusChanged: (newStatus) {
-            onTaskStatusChanged(task, newStatus);
-          },
+          isSelected: selectedTask?.id == task.id,
+          onStatusChanged: (newStatus) => onTaskStatusChanged(task, newStatus),
           onTap: onTaskTap != null ? () => onTaskTap!(task) : null,
         );
       },
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final String message;
+  const _EmptyState({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              size: 36,
+              color: AppColors.borderLight,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.lora(
+                fontSize: 18,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
