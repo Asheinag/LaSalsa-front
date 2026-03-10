@@ -387,11 +387,25 @@ class _TaskDetailViewState extends State<TaskDetailView> {
             date: '25 фев, 14:32',
           ),
 
-          const SizedBox(height: 18),
+        ],
+      ),
+    );
+  }
 
-          // ── Секция: Действия ──
-          _SectionLabel(label: 'Действия'),
-          const SizedBox(height: 6),
+  // ─── Футер (статус сохранения) ────────────────────────────────────────────
+
+  Widget _buildFooter() {
+    if (!_isSaving && widget.onDelete == null) return const SizedBox(height: 1);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+      decoration: const BoxDecoration(
+        color: AppColors.bg,
+        border: Border(top: BorderSide(color: AppColors.borderLight)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
           if (widget.onDelete != null)
             GestureDetector(
               onTap: _deleteTask,
@@ -410,31 +424,19 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Футер (статус сохранения) ────────────────────────────────────────────
-
-  Widget _buildFooter() {
-    if (!_isSaving) return const SizedBox(height: 1);
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-      decoration: const BoxDecoration(
-        color: AppColors.bg,
-        border: Border(top: BorderSide(color: AppColors.borderLight)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Text('Сохранение...', style: AppTextStyles.metaText),
-          const SizedBox(width: 10),
-          const SizedBox(
-            width: 13,
-            height: 13,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
-          ),
+          if (_isSaving)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text('Сохранение...', style: AppTextStyles.metaText),
+                const SizedBox(width: 10),
+                const SizedBox(
+                  width: 13,
+                  height: 13,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
+                ),
+              ],
+            ),
         ],
       ),
     );

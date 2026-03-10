@@ -6,6 +6,8 @@ import 'package:kabachok_lasalsa_front/core/theme/app_colors.dart';
 import 'package:kabachok_lasalsa_front/core/theme/app_text_styles.dart';
 import 'package:kabachok_lasalsa_front/core/theme/project_colors.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
+import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
+import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/injection_container.dart';
 import 'package:kabachok_lasalsa_front/features/ai_review/presentation/widgets/ai_review_card.dart';
 
@@ -14,9 +16,8 @@ class ProjectDetailsView extends StatefulWidget {
   final VoidCallback? onClose;
   final VoidCallback? onDelete;
   final ProjectService? projectService;
+  final TaskService? taskService;
   final Future<void> Function(Project updatedProject)? onProjectUpdated;
-  /// 30 значений: количество выполненных задач по дням (день 0 = 29 дней назад, день 29 = сегодня)
-  final List<int>? activityData;
 
   const ProjectDetailsView({
     super.key,
@@ -24,8 +25,8 @@ class ProjectDetailsView extends StatefulWidget {
     this.onClose,
     this.onDelete,
     this.projectService,
+    this.taskService,
     this.onProjectUpdated,
-    this.activityData,
   });
 
   @override
@@ -34,20 +35,26 @@ class ProjectDetailsView extends StatefulWidget {
 
 class _ProjectDetailsViewState extends State<ProjectDetailsView> {
   late final ProjectService _projectService;
+  late final TaskService _taskService;
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   int _selectedColorId = 0;
   String _selectedStatus = 'ACTIVE';
   Timer? _debounceTimer;
   bool _isSaving = false;
+  List<int> _activityData = List.filled(30, 0);
+  int _activeTaskCount = 0;
+  int _doneTaskCount = 0;
 
   @override
   void initState() {
     super.initState();
     _projectService = widget.projectService ?? getIt<ProjectService>();
+    _taskService = widget.taskService ?? getIt<TaskService>();
     _nameController = TextEditingController();
     _descriptionController = TextEditingController();
     _getProjectDetails();
+    _loadActivityData();
   }
 
   @override
@@ -55,6 +62,7 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
     super.didUpdateWidget(oldWidget);
     if (widget.project?.id != oldWidget.project?.id) {
       _updateData();
+      _loadActivityData();
     }
   }
 
@@ -76,6 +84,33 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
         _selectedStatus = widget.project!.status;
       });
     }
+  }
+
+  Future<void> _loadActivityData() async {
+    if (widget.project == null) return;
+    try {
+      final tasks = await _taskService.getTasksByProject(projectId: widget.project!.id);
+      if (mounted) {
+        setState(() {
+          _activityData = _computeActivityData(tasks);
+          _activeTaskCount = tasks.where((t) => t.status != 'DONE').length;
+          _doneTaskCount = tasks.where((t) => t.status == 'DONE').length;
+        });
+      }
+    } catch (_) {}
+  }
+
+  List<int> _computeActivityData(List<Task> tasks) {
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    final counts = List<int>.filled(30, 0);
+    for (final task in tasks) {
+      if (task.closedAt == null) continue;
+      final closed = DateTime(task.closedAt!.year, task.closedAt!.month, task.closedAt!.day);
+      final diff = todayDate.difference(closed).inDays;
+      if (diff >= 0 && diff < 30) counts[29 - diff]++;
+    }
+    return counts;
   }
 
   void _updateData() {
@@ -252,14 +287,13 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
             ],
           ),
           const SizedBox(height: 6),
-          // Статистика — пока заглушка (нет данных от бэкенда)
           Text(
-            '— активных · — выполнено',
+            '$_activeTaskCount активных · $_doneTaskCount выполнено',
             style: AppTextStyles.metaText,
           ),
           const SizedBox(height: 8),
           // Спарклайн активности
-          _ActivitySparkline(data: widget.activityData ?? List.filled(30, 0)),
+          _ActivitySparkline(data: _activityData),
         ],
       ),
     );
@@ -404,11 +438,25 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
             date: '25 фев, 14:32',
           ),
 
-          const SizedBox(height: 18),
+        ],
+      ),
+    );
+  }
 
-          // ── Секция: Действия ──
-          _SectionLabel(label: 'Действия'),
-          const SizedBox(height: 6),
+  // ─── Футер ────────────────────────────────────────────────────────────────
+
+  Widget _buildFooter() {
+    if (!_isSaving && widget.onDelete == null) return const SizedBox(height: 1);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+      decoration: const BoxDecoration(
+        color: AppColors.bg,
+        border: Border(top: BorderSide(color: AppColors.borderLight)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
           if (widget.onDelete != null)
             GestureDetector(
               onTap: _deleteProject,
@@ -427,31 +475,19 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Футер ────────────────────────────────────────────────────────────────
-
-  Widget _buildFooter() {
-    if (!_isSaving) return const SizedBox(height: 1);
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-      decoration: const BoxDecoration(
-        color: AppColors.bg,
-        border: Border(top: BorderSide(color: AppColors.borderLight)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Text('Сохранение...', style: AppTextStyles.metaText),
-          const SizedBox(width: 10),
-          const SizedBox(
-            width: 13,
-            height: 13,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
-          ),
+          if (_isSaving)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text('Сохранение...', style: AppTextStyles.metaText),
+                const SizedBox(width: 10),
+                const SizedBox(
+                  width: 13,
+                  height: 13,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
+                ),
+              ],
+            ),
         ],
       ),
     );

@@ -255,6 +255,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       return ProjectDetailsView(
         project: _selectedProject,
         projectService: _projectService,
+        taskService: _taskService,
         onDelete: () => _onProjectDeleted(_selectedProject!.id),
         onProjectUpdated: _handleProjectUpdate,
         onClose: () => setState(() => _selectedProject = null),
