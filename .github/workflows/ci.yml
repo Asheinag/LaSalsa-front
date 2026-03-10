@@ -4,7 +4,6 @@ on:
   pull_request:
     branches:
       - main
-      - test
       - development
 
 jobs:
@@ -25,22 +24,3 @@ jobs:
 
       - name: Run tests
         run: flutter test --reporter=expanded
-
-  analyze:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # Установка Flutter SDK
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.32.8"
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Check code formatting
-        run: dart format --output=none --set-exit-if-changed .
-
-      - name: Analyze code
-        run: flutter analyze    

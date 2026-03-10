@@ -50,3 +50,10 @@ app.*.map.json
 
 .env.*
 *.ps1
+
+# VSCODE settings
+.vscode/
+
+# Claude
+CLAUDE.md
+.claude

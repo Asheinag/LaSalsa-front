@@ -7,6 +7,7 @@ class Project {
   final String type;
   final DateTime? updatedAt;
   final DateTime? deadline;
+  final String? colorId;
 
   Project({
     required this.id,
@@ -17,6 +18,7 @@ class Project {
     this.updatedAt,
     this.deadline,
     this.type = 'LIST',
+    this.colorId = '0',
   });
 
   Project copyWith({
@@ -28,6 +30,7 @@ class Project {
     String? type,
     DateTime? updatedAt,
     DateTime? deadline,
+    String? colorId,
   }) {
     return Project(
       id: id ?? this.id,
@@ -38,6 +41,7 @@ class Project {
       updatedAt: updatedAt ?? this.updatedAt,
       deadline: deadline ?? this.deadline,
       type: type ?? this.type,
+      colorId: colorId ?? this.colorId,
     );
   }
 
@@ -46,8 +50,8 @@ class Project {
       id: json['id'].toString(),
       name: json['name'],
       description: json['description'],
-      status: json['status'] ?? 'ACTIVE',
-      type: json['type'] ?? 'LIST',
+      status: (json['status'] as String? ?? 'ACTIVE').toUpperCase(),
+      type: (json['type'] as String? ?? 'LIST').toUpperCase(),
       parentId: json['parent_id']?.toString(),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
@@ -55,6 +59,7 @@ class Project {
       deadline: json['deadline'] != null
           ? DateTime.parse(json['deadline'])
           : null,
+      colorId: json['color_id']?.toString(),
     );
   }
 
@@ -68,6 +73,7 @@ class Project {
       if (parentId != null) 'parent_id': parentId,
       'deadline': deadline?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
+      if (colorId != null) 'color_id': colorId,
     };
   }
 }
