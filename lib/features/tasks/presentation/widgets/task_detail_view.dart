@@ -9,7 +9,13 @@ import 'package:kabachok_lasalsa_front/core/theme/project_colors.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/injection_container.dart';
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
+import 'package:kabachok_lasalsa_front/core/api/ai_review_service.dart';
+import 'package:kabachok_lasalsa_front/features/ai_review/data/models/ai_review.dart';
 import 'package:kabachok_lasalsa_front/features/ai_review/presentation/widgets/ai_review_card.dart';
+import 'package:kabachok_lasalsa_front/features/ai_review/presentation/widgets/ai_review_placeholder.dart';
+import 'package:kabachok_lasalsa_front/features/ai_review/presentation/screens/ai_review_history_modal.dart';
+
+enum _AiReviewState { loading, hasReview, empty, running }
 
 class TaskDetailView extends StatefulWidget {
   final Task? task;
@@ -18,6 +24,7 @@ class TaskDetailView extends StatefulWidget {
   final VoidCallback? onDelete;
   final Future<void> Function(Task updatedTask)? onTaskUpdated;
   final TaskService? taskService;
+  final AiReviewService? aiReviewService;
 
   const TaskDetailView({
     super.key,
@@ -27,6 +34,7 @@ class TaskDetailView extends StatefulWidget {
     this.onDelete,
     this.onTaskUpdated,
     this.taskService,
+    this.aiReviewService,
   });
 
   @override
@@ -41,16 +49,22 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   Timer? _debounceTimer;
   bool _isSaving = false;
   late final TaskService _taskService;
+  late final AiReviewService _aiReviewService;
+  _AiReviewState _aiState = _AiReviewState.loading;
+  AIReviewRead? _currentReview;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
     _task = widget.task!;
     _taskService = widget.taskService ?? getIt<TaskService>();
+    _aiReviewService = widget.aiReviewService ?? getIt<AiReviewService>();
     _nameController = TextEditingController(text: _task.name);
     _descriptionController = TextEditingController(text: _task.description);
     _subscribeToTaskUpdates();
     _getTaskDetails();
+    _loadReview();
   }
 
   void _subscribeToTaskUpdates() {
@@ -73,6 +87,8 @@ class _TaskDetailViewState extends State<TaskDetailView> {
       _nameController.text = _task.name;
       _descriptionController.text = _task.description;
       _getTaskDetails();
+      _stopPolling();
+      _loadReview();
     }
   }
 
@@ -94,10 +110,78 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _pollingTimer?.cancel();
     _nameController.dispose();
     _descriptionController.dispose();
     _taskSubscription?.cancel();
     super.dispose();
+  }
+
+  // ─── AI Review ────────────────────────────────────────────────────────────
+
+  void _stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+  }
+
+  Future<void> _loadReview() async {
+    if (!mounted) return;
+    setState(() {
+      _aiState = _AiReviewState.loading;
+      _currentReview = null;
+    });
+    final review = await _aiReviewService.getActiveTaskReview(_task.id);
+    if (!mounted) return;
+    setState(() {
+      _currentReview = review;
+      _aiState = review != null ? _AiReviewState.hasReview : _AiReviewState.empty;
+    });
+  }
+
+  Future<void> _startReview() async {
+    if (!mounted) return;
+    setState(() => _aiState = _AiReviewState.running);
+    try {
+      final celeryId = await _aiReviewService.runTaskReview(_task.id);
+      _startPolling(celeryId);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось запустить ревью, попробуй ещё раз')),
+      );
+      setState(() => _aiState = _currentReview != null
+          ? _AiReviewState.hasReview
+          : _AiReviewState.empty);
+    }
+  }
+
+  void _startPolling(String celeryId) {
+    _stopPolling();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+      final status = await _aiReviewService.getReviewStatus(celeryId);
+      if (!mounted) { _stopPolling(); return; }
+      if (status == 'done') {
+        _stopPolling();
+        await _loadReview();
+      } else if (status == 'error') {
+        _stopPolling();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Не удалось получить ревью, попробуй ещё раз')),
+          );
+          setState(() => _aiState = _currentReview != null
+              ? _AiReviewState.hasReview
+              : _AiReviewState.empty);
+        }
+      }
+    });
+  }
+
+  void _openHistory() {
+    showDialog(
+      context: context,
+      builder: (_) => AiReviewHistoryModal(taskId: _task.id),
+    );
   }
 
   Future<void> _performUpdate(Task updatedTask) async {
@@ -374,22 +458,67 @@ class _TaskDetailViewState extends State<TaskDetailView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(child: _SectionLabel(label: 'AI Review')),
-              _AiButton(label: 'Обновить', onPressed: null),
+              if (_aiState == _AiReviewState.hasReview)
+                _AiButton(label: 'Обновить', onPressed: _startReview),
             ],
           ),
           const SizedBox(height: 8),
-          const AiReviewCard(
-            verdict: 'Задача сформулирована размыто',
-            score: 6,
-            issues: ['Нет конкретного глагола действия'],
-            suggestion:
-                'Переформулируй: начни с глагола и укажи ожидаемый результат',
-            date: '25 фев, 14:32',
-          ),
+          _buildAiSection(),
 
         ],
       ),
     );
+  }
+
+  Widget _buildAiSection() {
+    switch (_aiState) {
+      case _AiReviewState.loading:
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        );
+      case _AiReviewState.running:
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Row(
+            children: [
+              const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Ментор анализирует задачу...',
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+              ),
+            ],
+          ),
+        );
+      case _AiReviewState.empty:
+        return AiReviewPlaceholder(
+          buttonLabel: 'Проверить задачу',
+          onPressed: _startReview,
+        );
+      case _AiReviewState.hasReview:
+        final r = _currentReview!;
+        final dateStr = DateFormat('d MMM, HH:mm').format(r.createdAt.toLocal());
+        return AiReviewCard(
+          verdict: r.comment.verdict,
+          score: r.comment.score,
+          issues: r.comment.questions,
+          suggestion: r.comment.questions.isNotEmpty ? r.comment.questions.last : '',
+          date: dateStr,
+          onTap: _openHistory,
+          onHistoryTap: _openHistory,
+        );
+    }
   }
 
   // ─── Футер (статус сохранения) ────────────────────────────────────────────

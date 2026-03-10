@@ -7,9 +7,15 @@ import 'package:kabachok_lasalsa_front/core/theme/app_text_styles.dart';
 import 'package:kabachok_lasalsa_front/core/theme/project_colors.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
+import 'package:kabachok_lasalsa_front/core/api/ai_review_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/injection_container.dart';
+import 'package:kabachok_lasalsa_front/features/ai_review/data/models/ai_review.dart';
 import 'package:kabachok_lasalsa_front/features/ai_review/presentation/widgets/ai_review_card.dart';
+import 'package:kabachok_lasalsa_front/features/ai_review/presentation/widgets/ai_review_placeholder.dart';
+import 'package:kabachok_lasalsa_front/features/ai_review/presentation/screens/ai_review_history_modal.dart';
+
+enum _AiReviewState { loading, hasReview, empty, running }
 
 class ProjectDetailsView extends StatefulWidget {
   final Project? project;
@@ -17,6 +23,7 @@ class ProjectDetailsView extends StatefulWidget {
   final VoidCallback? onDelete;
   final ProjectService? projectService;
   final TaskService? taskService;
+  final AiReviewService? aiReviewService;
   final Future<void> Function(Project updatedProject)? onProjectUpdated;
 
   const ProjectDetailsView({
@@ -26,6 +33,7 @@ class ProjectDetailsView extends StatefulWidget {
     this.onDelete,
     this.projectService,
     this.taskService,
+    this.aiReviewService,
     this.onProjectUpdated,
   });
 
@@ -36,6 +44,7 @@ class ProjectDetailsView extends StatefulWidget {
 class _ProjectDetailsViewState extends State<ProjectDetailsView> {
   late final ProjectService _projectService;
   late final TaskService _taskService;
+  late final AiReviewService _aiReviewService;
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   int _selectedColorId = 0;
@@ -45,16 +54,21 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
   List<int> _activityData = List.filled(30, 0);
   int _activeTaskCount = 0;
   int _doneTaskCount = 0;
+  _AiReviewState _aiState = _AiReviewState.loading;
+  AIReviewRead? _currentReview;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
     _projectService = widget.projectService ?? getIt<ProjectService>();
     _taskService = widget.taskService ?? getIt<TaskService>();
+    _aiReviewService = widget.aiReviewService ?? getIt<AiReviewService>();
     _nameController = TextEditingController();
     _descriptionController = TextEditingController();
     _getProjectDetails();
     _loadActivityData();
+    _loadReview();
   }
 
   @override
@@ -63,12 +77,15 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
     if (widget.project?.id != oldWidget.project?.id) {
       _updateData();
       _loadActivityData();
+      _stopPolling();
+      _loadReview();
     }
   }
 
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _pollingTimer?.cancel();
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -111,6 +128,75 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
       if (diff >= 0 && diff < 30) counts[29 - diff]++;
     }
     return counts;
+  }
+
+  // ─── AI Review ────────────────────────────────────────────────────────────
+
+  void _stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+  }
+
+  Future<void> _loadReview() async {
+    if (!mounted) return;
+    setState(() {
+      _aiState = _AiReviewState.loading;
+      _currentReview = null;
+    });
+    if (widget.project == null) return;
+    final review = await _aiReviewService.getActiveProjectReview(widget.project!.id);
+    if (!mounted) return;
+    setState(() {
+      _currentReview = review;
+      _aiState = review != null ? _AiReviewState.hasReview : _AiReviewState.empty;
+    });
+  }
+
+  Future<void> _startReview() async {
+    if (!mounted || widget.project == null) return;
+    setState(() => _aiState = _AiReviewState.running);
+    try {
+      final celeryId = await _aiReviewService.runProjectReview(widget.project!.id);
+      _startPolling(celeryId);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось запустить ревью, попробуй ещё раз')),
+      );
+      setState(() => _aiState = _currentReview != null
+          ? _AiReviewState.hasReview
+          : _AiReviewState.empty);
+    }
+  }
+
+  void _startPolling(String celeryId) {
+    _stopPolling();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+      final status = await _aiReviewService.getReviewStatus(celeryId);
+      if (!mounted) { _stopPolling(); return; }
+      if (status == 'done') {
+        _stopPolling();
+        await _loadReview();
+      } else if (status == 'error') {
+        _stopPolling();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Не удалось получить ревью, попробуй ещё раз')),
+          );
+          setState(() => _aiState = _currentReview != null
+              ? _AiReviewState.hasReview
+              : _AiReviewState.empty);
+        }
+      }
+    });
+  }
+
+  void _openHistory() {
+    if (widget.project == null) return;
+    showDialog(
+      context: context,
+      builder: (_) => AiReviewHistoryModal(projectId: widget.project!.id),
+    );
   }
 
   void _updateData() {
@@ -419,28 +505,72 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
           const SizedBox(height: 18),
 
           // ── Секция: AI Ментор ──
+          const SizedBox(height: 18),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(child: _SectionLabel(label: 'AI Ментор')),
-              _AiButton(label: 'Обновить', onPressed: null),
+              if (_aiState == _AiReviewState.hasReview)
+                _AiButton(label: 'Обновить', onPressed: _startReview),
             ],
           ),
           const SizedBox(height: 8),
-          const AiReviewCard(
-            verdict: 'Структура понятна, но две задачи требуют декомпозиции',
-            score: 7,
-            issues: [
-              '«Разобраться с туннельным синдромом» — это проект, не задача',
-              '«Отобразить AI review» — нет описания и критерия готовности',
-            ],
-            suggestion: 'Декомпозируй эти две задачи перед следующим планированием',
-            date: '25 фев, 14:32',
-          ),
+          _buildAiSection(),
 
         ],
       ),
     );
+  }
+
+  Widget _buildAiSection() {
+    switch (_aiState) {
+      case _AiReviewState.loading:
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        );
+      case _AiReviewState.running:
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Row(
+            children: [
+              const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Ментор анализирует проект...',
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+              ),
+            ],
+          ),
+        );
+      case _AiReviewState.empty:
+        return AiReviewPlaceholder(
+          buttonLabel: 'Проверить проект',
+          onPressed: _startReview,
+        );
+      case _AiReviewState.hasReview:
+        final r = _currentReview!;
+        final dateStr = DateFormat('d MMM, HH:mm').format(r.createdAt.toLocal());
+        return AiReviewCard(
+          verdict: r.comment.verdict,
+          score: r.comment.score,
+          issues: r.comment.questions,
+          suggestion: r.comment.questions.isNotEmpty ? r.comment.questions.last : '',
+          date: dateStr,
+          onTap: _openHistory,
+          onHistoryTap: _openHistory,
+        );
+    }
   }
 
   // ─── Футер ────────────────────────────────────────────────────────────────

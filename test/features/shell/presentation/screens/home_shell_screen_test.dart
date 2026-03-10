@@ -7,15 +7,17 @@ import 'package:kabachok_lasalsa_front/features/shell/presentation/screens/home_
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
+import 'package:kabachok_lasalsa_front/core/api/ai_review_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
 
-@GenerateMocks([ProjectService, TaskService, FirebaseAuth])
+@GenerateMocks([ProjectService, TaskService, FirebaseAuth, AiReviewService])
 import 'home_shell_screen_test.mocks.dart';
 
 void main() {
   late MockProjectService mockProjectService;
   late MockTaskService mockTaskService;
   late MockFirebaseAuth mockFirebaseAuth;
+  late MockAiReviewService mockAiReviewService;
   late StreamController<Project> projectUpdateController;
   late StreamController<String> projectDeleteController;
   late StreamController<String> taskDeleteController;
@@ -24,7 +26,12 @@ void main() {
     mockProjectService = MockProjectService();
     mockTaskService = MockTaskService();
     mockFirebaseAuth = MockFirebaseAuth();
+    mockAiReviewService = MockAiReviewService();
     when(mockFirebaseAuth.currentUser).thenReturn(null);
+    when(mockAiReviewService.getActiveProjectReview(any)).thenAnswer((_) async => null);
+    when(mockAiReviewService.getActiveTaskReview(any)).thenAnswer((_) async => null);
+    when(mockAiReviewService.getTaskReviewHistory(any)).thenAnswer((_) async => []);
+    when(mockAiReviewService.getProjectReviewHistory(any)).thenAnswer((_) async => []);
     projectUpdateController = StreamController<Project>.broadcast();
     projectDeleteController = StreamController<String>.broadcast();
     taskDeleteController = StreamController<String>.broadcast();
@@ -87,6 +94,7 @@ void main() {
             projectService: mockProjectService,
             taskService: mockTaskService,
             auth: mockFirebaseAuth,
+            aiReviewService: mockAiReviewService,
           ),
         ),
       );
@@ -129,6 +137,7 @@ void main() {
           projectService: mockProjectService,
           taskService: mockTaskService,
           auth: mockFirebaseAuth,
+            aiReviewService: mockAiReviewService,
         ),
       ),
     );
@@ -180,6 +189,7 @@ void main() {
             projectService: mockProjectService,
             taskService: mockTaskService,
             auth: mockFirebaseAuth,
+            aiReviewService: mockAiReviewService,
           ),
         ),
       );
@@ -218,6 +228,7 @@ void main() {
             projectService: mockProjectService,
             taskService: mockTaskService,
             auth: mockFirebaseAuth,
+            aiReviewService: mockAiReviewService,
           ),
         ),
       );
@@ -272,6 +283,7 @@ void main() {
             projectService: mockProjectService,
             taskService: mockTaskService,
             auth: mockFirebaseAuth,
+            aiReviewService: mockAiReviewService,
           ),
         ),
       );

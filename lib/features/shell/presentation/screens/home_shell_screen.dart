@@ -13,6 +13,7 @@ import 'package:kabachok_lasalsa_front/core/widgets/basic_detail_view.dart';
 // Импорты сервисов
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
+import 'package:kabachok_lasalsa_front/core/api/ai_review_service.dart';
 import 'package:kabachok_lasalsa_front/injection_container.dart';
 // Импорты экранов
 import 'package:kabachok_lasalsa_front/features/today/presentation/screens/today_screen.dart';
@@ -24,9 +25,10 @@ import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 class HomeShellScreen extends StatefulWidget {
   final ProjectService? projectService;
   final TaskService? taskService;
+  final AiReviewService? aiReviewService;
   final FirebaseAuth? auth;
 
-  const HomeShellScreen({super.key, this.projectService, this.taskService, this.auth});
+  const HomeShellScreen({super.key, this.projectService, this.taskService, this.aiReviewService, this.auth});
 
   @override
   State<HomeShellScreen> createState() => _HomeShellScreenState();
@@ -44,6 +46,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   bool _isLoading = true; // Флаг загрузки проектов
   late final ProjectService _projectService;
   late final TaskService _taskService;
+  late final AiReviewService _aiReviewService;
   StreamSubscription<Project>? _projectSubscription;
   StreamSubscription<String>? _projectDeleteSubscription;
   StreamSubscription<String>? _taskDeleteSubscription;
@@ -53,6 +56,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     super.initState();
     _projectService = widget.projectService ?? getIt<ProjectService>();
     _taskService = widget.taskService ?? getIt<TaskService>();
+    _aiReviewService = widget.aiReviewService ?? getIt<AiReviewService>();
     _fetchProjects(); // Загружаем при старте приложения
     _projectSubscription = _projectService.projectUpdates.listen(
       _onProjectUpdated,
@@ -246,6 +250,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         task: _selectedTask,
         projects: _projects,
         taskService: _taskService,
+        aiReviewService: _aiReviewService,
         onTaskUpdated: _handleTaskUpdate,
         onDelete: () => _onTaskDeleted(_selectedTask!.id),
         onClose: () => setState(() => _selectedTask = null),
@@ -256,6 +261,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         project: _selectedProject,
         projectService: _projectService,
         taskService: _taskService,
+        aiReviewService: _aiReviewService,
         onDelete: () => _onProjectDeleted(_selectedProject!.id),
         onProjectUpdated: _handleProjectUpdate,
         onClose: () => setState(() => _selectedProject = null),

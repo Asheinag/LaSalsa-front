@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
+import 'package:kabachok_lasalsa_front/core/api/ai_review_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/features/shell/presentation/screens/home_shell_screen.dart';
@@ -13,17 +14,23 @@ import 'package:mockito/mockito.dart';
 
 import 'app_flow_test.mocks.dart';
 
-@GenerateMocks([ProjectService, TaskService, FirebaseAuth])
+@GenerateMocks([ProjectService, TaskService, FirebaseAuth, AiReviewService])
 void main() {
   late MockProjectService mockProjectService;
   late MockTaskService mockTaskService;
   late MockFirebaseAuth mockFirebaseAuth;
+  late MockAiReviewService mockAiReviewService;
 
   setUp(() {
     mockProjectService = MockProjectService();
     mockTaskService = MockTaskService();
     mockFirebaseAuth = MockFirebaseAuth();
+    mockAiReviewService = MockAiReviewService();
     when(mockFirebaseAuth.currentUser).thenReturn(null);
+    when(mockAiReviewService.getActiveTaskReview(any)).thenAnswer((_) async => null);
+    when(mockAiReviewService.getActiveProjectReview(any)).thenAnswer((_) async => null);
+    when(mockAiReviewService.getTaskReviewHistory(any)).thenAnswer((_) async => []);
+    when(mockAiReviewService.getProjectReviewHistory(any)).thenAnswer((_) async => []);
     when(
       mockProjectService.projectUpdates,
     ).thenAnswer((_) => const Stream.empty());
@@ -92,6 +99,7 @@ void main() {
           child: HomeShellScreen(
             projectService: mockProjectService,
             taskService: mockTaskService,
+            aiReviewService: mockAiReviewService,
             auth: mockFirebaseAuth,
           ),
         ),

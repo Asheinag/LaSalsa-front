@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kabachok_lasalsa_front/injection_container.dart' as di;
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
+import 'package:kabachok_lasalsa_front/core/api/ai_review_service.dart';
 
 void main() {
   group('Dependency Injection Container', () {
@@ -12,6 +13,9 @@ void main() {
       }
       if (di.getIt.isRegistered<ProjectService>()) {
         await di.getIt.unregister<ProjectService>();
+      }
+      if (di.getIt.isRegistered<AiReviewService>()) {
+        await di.getIt.unregister<AiReviewService>();
       }
     });
 
