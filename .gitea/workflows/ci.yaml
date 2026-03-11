@@ -1,0 +1,25 @@
+name: Flutter CI
+on:
+  push:
+    branches: [main, test, development]
+  pull_request:
+    branches: [main, test, development]
+
+jobs:
+  analyze_and_test:
+    # Метка должна в точности совпадать с тем, что ты указал при регистрации
+    runs-on: local-flutter
+    
+    steps:
+      # На Windows локальный checkout работает отлично через git
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Static Analysis
+        run: flutter analyze
+
+      - name: Run Tests
+        run: flutter test

@@ -2,12 +2,13 @@ name: CD
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Checkout code
@@ -21,5 +22,33 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Deploy (mock)
-        run: echo "✅ Я задеплоен"
+      - name: Build Web Release
+        run: |
+          flutter build web --release \
+            --dart-define=API_BASE_URL=${{ secrets.API_BASE_URL }} \
+            --dart-define=FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }} \
+            --dart-define=FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }} \
+            --dart-define=FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }} \
+            --dart-define=FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }} \
+            --dart-define=FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }} \
+            --dart-define=FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Archive and Upload to Server
+        run: |
+          tar -czf frontend.tar.gz -C build/web .
+          scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no frontend.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.LASALSA_HOST }}:/tmp/
+
+      - name: Deploy on Remote Server
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.LASALSA_HOST }} "
+            mkdir -p ~/lasalsa-app/frontend/static
+            rm -rf ~/lasalsa-app/frontend/static/*
+            tar -xzf /tmp/frontend.tar.gz -C ~/lasalsa-app/frontend/static
+            rm /tmp/frontend.tar.gz
+            cd ~/lasalsa-app && docker compose -f docker-compose.prod.yml restart lasalsa-nginx
+          "

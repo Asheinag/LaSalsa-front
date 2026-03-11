@@ -47,3 +47,13 @@ app.*.map.json
 
 # google secrets
 /android/app/google-services.json
+
+.env.*
+*.ps1
+
+# VSCODE settings
+.vscode/
+
+# Claude
+CLAUDE.md
+.claude
