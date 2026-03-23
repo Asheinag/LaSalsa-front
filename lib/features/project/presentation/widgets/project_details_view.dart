@@ -268,6 +268,21 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
     }
   }
 
+  Future<void> _clearDeadline() async {
+    final previous = widget.project!;
+    _performUpdate(previous.copyWithClearedDeadline());
+    try {
+      await _projectService.patchProjectFields(previous.id, {'deadline': null});
+    } catch (_) {
+      if (mounted) {
+        _performUpdate(previous);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось сохранить')),
+        );
+      }
+    }
+  }
+
   Future<void> _deleteProject() async {
     if (widget.project == null) return;
     try {
@@ -442,6 +457,7 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
 
           _FieldRow(
             label: 'Дедлайн',
+            onClear: widget.project?.deadline != null ? _clearDeadline : null,
             child: GestureDetector(
               onTap: _changeDeadline,
               child: MouseRegion(
@@ -711,7 +727,8 @@ class _SectionLabel extends StatelessWidget {
 class _FieldRow extends StatelessWidget {
   final String label;
   final Widget child;
-  const _FieldRow({required this.label, required this.child});
+  final VoidCallback? onClear;
+  const _FieldRow({required this.label, required this.child, this.onClear});
 
   @override
   Widget build(BuildContext context) {
@@ -723,6 +740,16 @@ class _FieldRow extends StatelessWidget {
           SizedBox(width: 100, child: Text(label, style: AppTextStyles.bodySmall)),
           const SizedBox(width: 10),
           Expanded(child: child),
+          if (onClear != null)
+            IconButton(
+              icon: const Icon(Icons.close, size: 14),
+              onPressed: onClear,
+              tooltip: 'Очистить',
+              color: AppColors.textMuted,
+              hoverColor: AppColors.textSecondary.withValues(alpha: 0.1),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+            ),
         ],
       ),
     );

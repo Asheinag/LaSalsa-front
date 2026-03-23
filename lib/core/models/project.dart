@@ -45,6 +45,18 @@ class Project {
     );
   }
 
+  Project copyWithClearedDeadline() => Project(
+        id: id,
+        name: name,
+        description: description,
+        status: status,
+        parentId: parentId,
+        updatedAt: updatedAt,
+        deadline: null,
+        type: type,
+        colorId: colorId,
+      );
+
   factory Project.fromJson(Map<String, dynamic> json) {
     return Project(
       id: json['id'].toString(),

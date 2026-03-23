@@ -237,6 +237,36 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     }
   }
 
+  Future<void> _clearPlannedDate() async {
+    final previous = _task;
+    setState(() => _task = _task.copyWithClearedPlannedAt());
+    try {
+      await _taskService.patchTaskFields(_task.id, {'planned_at': null});
+    } catch (_) {
+      if (mounted) {
+        setState(() => _task = previous);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось сохранить')),
+        );
+      }
+    }
+  }
+
+  Future<void> _clearProject() async {
+    final previous = _task;
+    setState(() => _task = _task.copyWithClearedProjectId());
+    try {
+      await _taskService.patchTaskFields(_task.id, {'project_id': null});
+    } catch (_) {
+      if (mounted) {
+        setState(() => _task = previous);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось сохранить')),
+        );
+      }
+    }
+  }
+
   Future<void> _deleteTask() async {
     if (widget.task == null) return;
     try {
@@ -359,6 +389,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
 
           _FieldRow(
             label: 'Проект',
+            onClear: _task.projectId != null ? _clearProject : null,
             child: widget.projects.isEmpty
                 ? Text('—', style: AppTextStyles.bodyText.copyWith(color: AppColors.textPrimary))
                 : DropdownButtonHideUnderline(
@@ -390,6 +421,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
 
           _FieldRow(
             label: 'Дата',
+            onClear: _task.plannedAt != null ? _clearPlannedDate : null,
             child: GestureDetector(
               onTap: _changePlannedDate,
               child: MouseRegion(
@@ -590,7 +622,8 @@ class _SectionLabel extends StatelessWidget {
 class _FieldRow extends StatelessWidget {
   final String label;
   final Widget child;
-  const _FieldRow({required this.label, required this.child});
+  final VoidCallback? onClear;
+  const _FieldRow({required this.label, required this.child, this.onClear});
 
   @override
   Widget build(BuildContext context) {
@@ -605,6 +638,16 @@ class _FieldRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(child: child),
+          if (onClear != null)
+            IconButton(
+              icon: const Icon(Icons.close, size: 14),
+              onPressed: onClear,
+              tooltip: 'Очистить',
+              color: AppColors.textMuted,
+              hoverColor: AppColors.textSecondary.withValues(alpha: 0.1),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+            ),
         ],
       ),
     );

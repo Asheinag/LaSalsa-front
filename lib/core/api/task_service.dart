@@ -185,6 +185,19 @@ class TaskService {
     }
   }
 
+  // Патчим задачу произвольными полями (поддерживает передачу null)
+  Future<Task> patchTaskFields(String taskId, Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.patch('/tasks/$taskId', data: data);
+      final task = Task.fromJson(response.data);
+      _taskUpdateController.add(task);
+      return task;
+    } on DioException catch (e) {
+      logger.e('Ошибка Dio при патче задачи: ${e.response?.statusCode}');
+      throw Exception('Не удалось сохранить изменения.');
+    }
+  }
+
   // Удаляем задачу
   Future<void> deleteTask({required String taskId}) async {
     try {

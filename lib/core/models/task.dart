@@ -41,6 +41,28 @@ class Task {
     );
   }
 
+  Task copyWithClearedPlannedAt() => Task(
+        id: id,
+        name: name,
+        description: description,
+        status: status,
+        plannedAt: null,
+        closedAt: closedAt,
+        projectId: projectId,
+        parentId: parentId,
+      );
+
+  Task copyWithClearedProjectId() => Task(
+        id: id,
+        name: name,
+        description: description,
+        status: status,
+        plannedAt: plannedAt,
+        closedAt: closedAt,
+        projectId: null,
+        parentId: parentId,
+      );
+
   factory Task.fromJson(Map<String, dynamic> json) {
     return Task(
       id: json['id'].toString(),

@@ -102,6 +102,19 @@ class ProjectService {
     }
   }
 
+  // Патчим проект произвольными полями (поддерживает передачу null)
+  Future<Project> patchProjectFields(String projectId, Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.patch('/$projectId', data: data);
+      final project = Project.fromJson(response.data);
+      _projectUpdateController.add(project);
+      return project;
+    } on DioException catch (e) {
+      logger.e('Ошибка Dio при патче проекта: ${e.response?.statusCode}');
+      throw Exception('Не удалось сохранить изменения.');
+    }
+  }
+
   void dispose() {
     _projectUpdateController.close();
     _projectDeleteController.close();
