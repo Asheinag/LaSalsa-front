@@ -143,6 +143,13 @@ class _AppSidebarState extends State<AppSidebar> {
                       isCollapsed: _isCollapsed,
                       onTap: () => widget.onPageSelected('inbox'),
                     ),
+                    _SidebarNavItem(
+                      icon: Icons.check_circle_outline,
+                      label: 'Выполненное',
+                      isActive: widget.selectedPageId == 'completed',
+                      isCollapsed: _isCollapsed,
+                      onTap: () => widget.onPageSelected('completed'),
+                    ),
                     const SizedBox(height: 14),
                     _buildSectionLabel('Проекты'),
                     ...widget.projects.map(_buildProjectItem),

@@ -185,6 +185,23 @@ class TaskService {
     }
   }
 
+  // Получаем выполненные задачи (is_active=false)
+  Future<List<Task>> getCompletedTasks({
+    required String offset,
+    required String limit,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/tasks/?is_active=false&offset=$offset&limit=$limit',
+      );
+      final List<dynamic> jsonData = response.data;
+      return jsonData.map((json) => Task.fromJson(json)).toList();
+    } on DioException catch (e) {
+      logger.e('Ошибка Dio при загрузке выполненных задач: ${e.response?.statusCode}');
+      throw Exception('Не удалось загрузить выполненные задачи.');
+    }
+  }
+
   // Патчим задачу произвольными полями (поддерживает передачу null)
   Future<Task> patchTaskFields(String taskId, Map<String, dynamic> data) async {
     try {

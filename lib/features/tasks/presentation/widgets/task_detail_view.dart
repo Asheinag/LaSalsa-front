@@ -25,6 +25,7 @@ class TaskDetailView extends StatefulWidget {
   final Future<void> Function(Task updatedTask)? onTaskUpdated;
   final TaskService? taskService;
   final AiReviewService? aiReviewService;
+  final bool showAiReview;
 
   const TaskDetailView({
     super.key,
@@ -35,6 +36,7 @@ class TaskDetailView extends StatefulWidget {
     this.onTaskUpdated,
     this.taskService,
     this.aiReviewService,
+    this.showAiReview = true,
   });
 
   @override
@@ -485,17 +487,19 @@ class _TaskDetailViewState extends State<TaskDetailView> {
           const SizedBox(height: 18),
 
           // ── Секция: AI Review ──
-          const SizedBox(height: 18),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(child: _SectionLabel(label: 'AI Review')),
-              if (_aiState == _AiReviewState.hasReview)
-                _AiButton(label: 'Обновить', onPressed: _startReview),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _buildAiSection(),
+          if (widget.showAiReview) ...[
+            const SizedBox(height: 18),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(child: _SectionLabel(label: 'AI Review')),
+                if (_aiState == _AiReviewState.hasReview)
+                  _AiButton(label: 'Обновить', onPressed: _startReview),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _buildAiSection(),
+          ],
 
         ],
       ),

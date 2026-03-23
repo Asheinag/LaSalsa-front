@@ -102,6 +102,23 @@ class ProjectService {
     }
   }
 
+  // Получаем завершённые проекты (is_active=false)
+  Future<List<Project>> getCompletedProjects({
+    required String offset,
+    required String limit,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/?is_active=false&offset=$offset&limit=$limit',
+      );
+      final List<dynamic> jsonData = response.data;
+      return jsonData.map((json) => Project.fromJson(json)).toList();
+    } on DioException catch (e) {
+      logger.e('Ошибка Dio при загрузке завершённых проектов: ${e.response?.statusCode}');
+      throw Exception('Не удалось загрузить завершённые проекты.');
+    }
+  }
+
   // Патчим проект произвольными полями (поддерживает передачу null)
   Future<Project> patchProjectFields(String projectId, Map<String, dynamic> data) async {
     try {

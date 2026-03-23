@@ -19,6 +19,7 @@ import 'package:kabachok_lasalsa_front/injection_container.dart';
 import 'package:kabachok_lasalsa_front/features/today/presentation/screens/today_screen.dart';
 import 'package:kabachok_lasalsa_front/features/inbox/presentation/screens/inbox_screen.dart';
 import 'package:kabachok_lasalsa_front/features/project/presentation/screens/project_details_screen.dart';
+import 'package:kabachok_lasalsa_front/features/completed/presentation/screens/completed_screen.dart';
 // Дебаг
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 
@@ -202,6 +203,13 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     logger.i('Переключение на страницу: $pageId с аргументами: $args');
   }
 
+  void _handleProjectTap(Project project) {
+    setState(() {
+      _selectedProject = project;
+      _selectedTask = null;
+    });
+  }
+
   // Метод обработки клика по задаче (вызывается из TodayScreen и др)
   void _handleTaskTap(Task task) {
     logger.i('Выбрана задача: ${task.name}');
@@ -238,6 +246,14 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           );
         }
         return const Center(child: Text("Ошибка: Проект не выбран"));
+
+      case 'completed':
+        return CompletedScreen(
+          taskService: _taskService,
+          projectService: _projectService,
+          onTaskTap: _handleTaskTap,
+          onProjectTap: _handleProjectTap,
+        );
 
       default:
         return const Center(child: Text("404"));
