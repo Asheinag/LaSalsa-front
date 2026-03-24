@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
+import 'package:kabachok_lasalsa_front/core/models/project_stats.dart';
+import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 import 'package:kabachok_lasalsa_front/core/api/config.dart';
 import 'package:kabachok_lasalsa_front/core/api/auth_interceptor.dart';
@@ -21,9 +23,9 @@ class ProjectService {
     }
   }
 
-  Future<List<Project>> getProjects() async {
+  Future<List<Project>> getProjects({int offset = 0, int limit = 50}) async {
     try {
-      final response = await _dio.get('/');
+      final response = await _dio.get('/?offset=$offset&limit=$limit');
       final List<dynamic> jsonData = response.data;
       return jsonData
           .map((projectJson) => Project.fromJson(projectJson))
@@ -99,6 +101,38 @@ class ProjectService {
     } on DioException catch (e) {
       logger.e('Ошибка Dio при обновлении проекта: ${e.response?.statusCode}');
       throw Exception('Не удалось обновить проект.');
+    }
+  }
+
+  // Активные задачи проекта с пагинацией (is_active=true)
+  Future<List<Task>> getActiveProjectTasks({
+    required String projectId,
+    required String offset,
+    required String limit,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/$projectId/tasks?is_active=true&offset=$offset&limit=$limit',
+      );
+      final List<dynamic> jsonData = response.data;
+      return jsonData.map((json) => Task.fromJson(json)).toList();
+    } on DioException catch (e) {
+      logger.e('Ошибка Dio при загрузке задач проекта: ${e.response?.statusCode}');
+      throw Exception('Не удалось загрузить задачи проекта.');
+    }
+  }
+
+  // Статистика проекта
+  Future<ProjectStats> getProjectStats({required String projectId}) async {
+    try {
+      final response = await _dio.get('/$projectId/stats');
+      return ProjectStats.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return const ProjectStats(total: 0, active: 0, completed: 0);
+      }
+      logger.e('Ошибка Dio при загрузке статистики проекта: ${e.response?.statusCode}');
+      throw Exception('Не удалось загрузить статистику проекта.');
     }
   }
 

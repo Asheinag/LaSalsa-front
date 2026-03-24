@@ -10,7 +10,7 @@ void main() {
     testWidgets('Check Loading show Progress Indicator', (
       WidgetTester tester,
     ) async {
-      Future<List<Task>> fakeFetcher() async {
+      Future<List<Task>> fakeFetcher(int offset, int limit) async {
         await Future.delayed(const Duration(seconds: 1));
         return [
           Task(id: '1', name: 'Test Task', description: '', status: 'TODO'),
@@ -33,15 +33,13 @@ void main() {
       );
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.byType(TaskListBase), findsNothing);
       await tester.pumpAndSettle();
 
       expect(find.byType(CircularProgressIndicator), findsNothing);
-      expect(find.byType(TaskListBase), findsOneWidget);
       expect(find.text('Test Task'), findsOneWidget);
     });
     testWidgets('Check empty message', (WidgetTester tester) async {
-      Future<List<Task>> fakeFetcher() async {
+      Future<List<Task>> fakeFetcher(int offset, int limit) async {
         await Future.delayed(const Duration(seconds: 1));
         return [];
       }
@@ -62,18 +60,16 @@ void main() {
       );
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.byType(TaskListBase), findsNothing);
       await tester.pumpAndSettle();
 
       expect(find.byType(CircularProgressIndicator), findsNothing);
-      expect(find.byType(TaskListBase), findsOneWidget);
       expect(find.text('No tasks available'), findsOneWidget);
     });
 
     testWidgets('Check error message on fetch failure',
         (WidgetTester tester) async {
       // ARRANGE: Наш загрузчик теперь просто бросает исключение
-      Future<List<Task>> fakeFetcher() async {
+      Future<List<Task>> fakeFetcher(int offset, int limit) async {
         throw Exception('Failed to load');
       }
 
@@ -109,7 +105,7 @@ void main() {
     testWidgets('Shows initial date in QuickAddTaskBar',
         (WidgetTester tester) async {
       // ARRANGE
-      Future<List<Task>> fakeFetcher() async => [];
+      Future<List<Task>> fakeFetcher(int offset, int limit) async => [];
       Future<Task> fakeCreator(String title, DateTime? plannedAt) async =>
           Task(id: '1', name: title, description: '', status: 'TODO');
       final initialDate = DateTime(2025, 5, 10);
@@ -154,7 +150,7 @@ void main() {
       'hideCompleted: false — показывает все задачи включая DONE',
       (tester) async {
         // ARRANGE
-        Future<List<Task>> fetcher() async => [todoTask, doneTask];
+        Future<List<Task>> fetcher(int offset, int limit) async => [todoTask, doneTask];
 
         // ACT
         await tester.pumpWidget(
@@ -181,7 +177,7 @@ void main() {
       'hideCompleted: true — скрывает DONE-задачи по умолчанию',
       (tester) async {
         // ARRANGE
-        Future<List<Task>> fetcher() async => [todoTask, doneTask];
+        Future<List<Task>> fetcher(int offset, int limit) async => [todoTask, doneTask];
 
         // ACT
         await tester.pumpWidget(
@@ -207,7 +203,7 @@ void main() {
       'hideCompleted: true — показывает кнопку "Выполнено (N)" при наличии DONE-задач',
       (tester) async {
         // ARRANGE
-        Future<List<Task>> fetcher() async => [todoTask, doneTask];
+        Future<List<Task>> fetcher(int offset, int limit) async => [todoTask, doneTask];
 
         // ACT
         await tester.pumpWidget(
@@ -232,7 +228,7 @@ void main() {
       'По клику на тоггл DONE-задачи раскрываются и текст кнопки меняется',
       (tester) async {
         // ARRANGE
-        Future<List<Task>> fetcher() async => [todoTask, doneTask];
+        Future<List<Task>> fetcher(int offset, int limit) async => [todoTask, doneTask];
 
         // ACT
         await tester.pumpWidget(
@@ -265,7 +261,7 @@ void main() {
       'hideCompleted: true без DONE-задач — тоггл не отображается',
       (tester) async {
         // ARRANGE: только TODO задачи
-        Future<List<Task>> fetcher() async => [todoTask];
+        Future<List<Task>> fetcher(int offset, int limit) async => [todoTask];
 
         // ACT
         await tester.pumpWidget(

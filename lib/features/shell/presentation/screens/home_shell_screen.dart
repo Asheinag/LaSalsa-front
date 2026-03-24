@@ -42,9 +42,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   String _selectedPageId = 'today'; // Задачем начальную страницу - Сегодня
   dynamic _currentPageArgs; // Храним аргументы (например, выбранный проект)
 
-  List<Project> _projects = []; // Список проектов
+  List<Project> _projects = [];
+  int _projectsOffset = 0;
+  bool _hasMoreProjects = true;
 
-  bool _isLoading = true; // Флаг загрузки проектов
+  bool _isLoading = true;
   late final ProjectService _projectService;
   late final TaskService _taskService;
   late final AiReviewService _aiReviewService;
@@ -120,23 +122,45 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     });
   }
 
-  // Метод загрузки проектов
+  static const int _projectsPageSize = 50;
+
   Future<void> _fetchProjects() async {
     try {
-      final projects = await _projectService.getProjects();
+      final projects = await _projectService.getProjects(
+        offset: 0,
+        limit: _projectsPageSize,
+      );
       if (mounted) {
         setState(() {
           _projects = projects.where((p) => p.status == 'ACTIVE').toList();
+          _projectsOffset = _projects.length;
+          _hasMoreProjects = projects.length == _projectsPageSize;
           _isLoading = false;
         });
       }
     } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+      logger.e('Ошибка при загрузке проектов: $e');
+    }
+  }
+
+  Future<void> _loadMoreProjects() async {
+    if (!_hasMoreProjects) return;
+    try {
+      final more = await _projectService.getProjects(
+        offset: _projectsOffset,
+        limit: _projectsPageSize,
+      );
+      final active = more.where((p) => p.status == 'ACTIVE').toList();
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _projects.addAll(active);
+          _projectsOffset += more.length;
+          _hasMoreProjects = more.length == _projectsPageSize;
         });
       }
-      logger.e('Ошибка при загрузке проектов: $e');
+    } catch (e) {
+      logger.e('Ошибка при подгрузке проектов: $e');
     }
   }
 
@@ -243,6 +267,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
             project: _currentPageArgs as Project,
             onTaskTap: _handleTaskTap, // Подключаем тап!
             service: _taskService,
+            projectSvc: _projectService,
           );
         }
         return const Center(child: Text("Ошибка: Проект не выбран"));
@@ -301,6 +326,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                   onProjectCreated: (newProject) {
                     setState(() => _projects.add(newProject));
                   },
+                  onNeedMoreProjects: _loadMoreProjects,
                   projectService: _projectService,
                   selectedPageId: _selectedPageId,
                   selectedProjectId: _selectedProject?.id,

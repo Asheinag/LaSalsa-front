@@ -13,6 +13,7 @@ class AppSidebar extends StatefulWidget {
   final List<Project> projects;
   final Function(String pageId, {dynamic args}) onPageSelected;
   final Function(Project newProject)? onProjectCreated;
+  final VoidCallback? onNeedMoreProjects;
   final ProjectService? projectService;
   final String selectedPageId;
   final String? selectedProjectId;
@@ -23,6 +24,7 @@ class AppSidebar extends StatefulWidget {
     required this.onPageSelected,
     required this.projects,
     this.onProjectCreated,
+    this.onNeedMoreProjects,
     this.projectService,
     this.selectedPageId = 'today',
     this.selectedProjectId,
@@ -38,6 +40,7 @@ class _AppSidebarState extends State<AppSidebar> {
   bool _isCollapsed = false;
   bool _isCreatingProject = false;
   final _newProjectController = TextEditingController();
+  final _scrollController = ScrollController();
   int _selectedColorId = 0;
 
   static const double _expandedWidth = 216;
@@ -47,12 +50,21 @@ class _AppSidebarState extends State<AppSidebar> {
   void initState() {
     super.initState();
     _projectService = widget.projectService ?? ProjectService();
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _newProjectController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 100) {
+      widget.onNeedMoreProjects?.call();
+    }
   }
 
   Future<void> _submitNewProject() async {
@@ -124,6 +136,7 @@ class _AppSidebarState extends State<AppSidebar> {
             _buildLogo(),
             Expanded(
               child: SingleChildScrollView(
+                controller: _scrollController,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [

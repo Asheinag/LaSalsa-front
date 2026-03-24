@@ -67,12 +67,12 @@ void main() {
 
     // Mock API calls
     when(
-      mockTaskService.getTodayTasks(offset: '0', limit: '20'),
+      mockTaskService.getTodayTasks(offset: '0', limit: '30'),
     ).thenAnswer((_) async => []);
     when(
-      mockTaskService.getTasks(offset: '0', limit: '20'),
+      mockTaskService.getTasks(offset: '0', limit: '30'),
     ).thenAnswer((_) async => []);
-    when(mockProjectService.getProjects()).thenAnswer((_) async => []);
+    when(mockProjectService.getProjects(offset: 0, limit: 50)).thenAnswer((_) async => []);
     when(
       mockProjectService.createProject(
         name: projectName,
@@ -80,7 +80,11 @@ void main() {
       ),
     ).thenAnswer((_) async => project);
     when(
-      mockTaskService.getTasksByProject(projectId: '1'),
+      mockProjectService.getActiveProjectTasks(
+        projectId: '1',
+        offset: '0',
+        limit: '30',
+      ),
     ).thenAnswer((_) async => [task]);
     when(
       mockTaskService.createTask(

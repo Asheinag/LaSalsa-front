@@ -8,6 +8,7 @@ import 'package:kabachok_lasalsa_front/core/theme/project_colors.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/ai_review_service.dart';
+import 'package:kabachok_lasalsa_front/core/models/project_stats.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/injection_container.dart';
 import 'package:kabachok_lasalsa_front/features/ai_review/data/models/ai_review.dart';
@@ -57,6 +58,7 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
   _AiReviewState _aiState = _AiReviewState.loading;
   AIReviewRead? _currentReview;
   Timer? _pollingTimer;
+  ProjectStats? _stats;
 
   @override
   void initState() {
@@ -106,12 +108,16 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
   Future<void> _loadActivityData() async {
     if (widget.project == null) return;
     try {
-      final tasks = await _taskService.getTasksByProject(projectId: widget.project!.id);
+      final tasksFuture = _taskService.getTasksByProject(projectId: widget.project!.id);
+      final statsFuture = _projectService.getProjectStats(projectId: widget.project!.id);
+      final tasks = await tasksFuture;
+      final stats = await statsFuture;
       if (mounted) {
         setState(() {
           _activityData = _computeActivityData(tasks);
           _activeTaskCount = tasks.where((t) => t.status != 'DONE').length;
           _doneTaskCount = tasks.where((t) => t.status == 'DONE').length;
+          _stats = stats;
         });
       }
     } catch (_) {}
@@ -389,7 +395,9 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
           ),
           const SizedBox(height: 6),
           Text(
-            '$_activeTaskCount активных · $_doneTaskCount выполнено',
+            _stats != null
+                ? '$_activeTaskCount активных · $_doneTaskCount выполнено · ${_stats!.total} всего'
+                : '$_activeTaskCount активных · $_doneTaskCount выполнено',
             style: AppTextStyles.metaText,
           ),
           const SizedBox(height: 8),

@@ -22,7 +22,10 @@ class TodayScreen extends StatelessWidget {
       title: 'Задачи на сегодня',
       initialDate: DateTime.now(),
       // Передаем саму функцию, которую нужно вызвать для загрузки
-      fetcher: () => taskService.getTodayTasks(offset: '0', limit: '20'),
+      fetcher: (offset, limit) => taskService.getTodayTasks(
+        offset: '$offset',
+        limit: '$limit',
+      ),
       creator: (title, plannedAt) {
         final now = DateTime.now();
         return taskService.createTask(

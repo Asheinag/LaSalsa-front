@@ -185,6 +185,23 @@ class TaskService {
     }
   }
 
+  // Получаем активные задачи (is_active=true) с пагинацией
+  Future<List<Task>> getActiveTasks({
+    required String offset,
+    required String limit,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/tasks/?is_active=true&offset=$offset&limit=$limit',
+      );
+      final List<dynamic> jsonData = response.data;
+      return jsonData.map((json) => Task.fromJson(json)).toList();
+    } on DioException catch (e) {
+      logger.e('Ошибка Dio при загрузке активных задач: ${e.response?.statusCode}');
+      throw Exception('Не удалось загрузить задачи.');
+    }
+  }
+
   // Получаем выполненные задачи (is_active=false)
   Future<List<Task>> getCompletedTasks({
     required String offset,
