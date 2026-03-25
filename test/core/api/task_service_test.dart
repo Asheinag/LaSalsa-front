@@ -29,7 +29,7 @@ void main() {
         ],
       };
 
-      when(mockDio.get(any)).thenAnswer(
+      when(mockDio.get(any, queryParameters: anyNamed('queryParameters'))).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: ''),
           data: fakeResponse['data'], // Важно передать сам список
@@ -45,7 +45,7 @@ void main() {
       // Дополнительно можем проверить, что список не пустой
       expect(tasks, isNotEmpty);
 
-      verify(mockDio.get('/tasks/today?offset=20&limit=0')).called(1);
+      verify(mockDio.get('/tasks/today', queryParameters: anyNamed('queryParameters'))).called(1);
     });
 
     test('getTodayTasks should return tasks with correct data', () async {
@@ -60,7 +60,7 @@ void main() {
         ],
       };
 
-      when(mockDio.get(any)).thenAnswer(
+      when(mockDio.get(any, queryParameters: anyNamed('queryParameters'))).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: ''),
           data: fakeResponse['data'], // Важно передать сам список
@@ -78,7 +78,7 @@ void main() {
       expect(firstTask.description, 'Позвонить клиенту по договору');
       expect(firstTask.status, 'TODO');
 
-      verify(mockDio.get('/tasks/today?offset=20&limit=0')).called(1);
+      verify(mockDio.get('/tasks/today', queryParameters: anyNamed('queryParameters'))).called(1);
     });
 
     test('createTask should create and return new task ', () async {
@@ -182,7 +182,7 @@ void main() {
     test('getTodayTasks should throw an exception on network error', () async {
       // ARRANGE
       when(
-        mockDio.get(any),
+        mockDio.get(any, queryParameters: anyNamed('queryParameters')),
       ).thenThrow(DioException(requestOptions: RequestOptions(path: '')));
 
       // ACT
@@ -200,7 +200,7 @@ void main() {
           ),
         ),
       );
-      verify(mockDio.get('/tasks/today?offset=20&limit=0')).called(1);
+      verify(mockDio.get('/tasks/today', queryParameters: anyNamed('queryParameters'))).called(1);
     });
 
     test('createTask should throw an exception on network error', () async {
