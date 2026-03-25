@@ -240,11 +240,16 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   }
 
   Future<void> _clearPlannedDate() async {
+    _debounceTimer?.cancel();
     final previous = _task;
-    setState(() => _task = _task.copyWithClearedPlannedAt());
+    final cleared = _task.copyWithClearedPlannedAt();
+    setState(() => _task = cleared);
     try {
-      await _taskService.patchTaskFields(_task.id, {'planned_at': null});
-    } catch (_) {
+      final updated = await _taskService.patchTaskFields(_task.id, {'planned_at': null});
+      logger.i('Очистка даты: planned_at в ответе = ${updated.plannedAt}');
+      if (mounted) setState(() => _task = cleared);
+    } catch (e) {
+      logger.e('Ошибка очистки даты: $e');
       if (mounted) {
         setState(() => _task = previous);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -255,11 +260,16 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   }
 
   Future<void> _clearProject() async {
+    _debounceTimer?.cancel();
     final previous = _task;
-    setState(() => _task = _task.copyWithClearedProjectId());
+    final cleared = _task.copyWithClearedProjectId();
+    setState(() => _task = cleared);
     try {
-      await _taskService.patchTaskFields(_task.id, {'project_id': null});
-    } catch (_) {
+      final updated = await _taskService.patchTaskFields(_task.id, {'project_id': null});
+      logger.i('Очистка проекта: project_id в ответе = ${updated.projectId}');
+      if (mounted) setState(() => _task = cleared);
+    } catch (e) {
+      logger.e('Ошибка очистки проекта: $e');
       if (mounted) {
         setState(() => _task = previous);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -398,6 +408,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                     child: DropdownButton<String>(
                       value: _task.projectId,
                       isDense: true,
+                      isExpanded: true,
                       style: AppTextStyles.bodyText.copyWith(color: AppColors.textPrimary),
                       items: widget.projects.map((p) {
                         return DropdownMenuItem(
@@ -412,7 +423,13 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            Text(p.name, style: AppTextStyles.bodyText.copyWith(color: AppColors.textPrimary)),
+                            Expanded(
+                              child: Text(
+                                p.name,
+                                style: AppTextStyles.bodyText.copyWith(color: AppColors.textPrimary),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ]),
                         );
                       }).toList(),

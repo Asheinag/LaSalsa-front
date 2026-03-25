@@ -59,6 +59,9 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
   AIReviewRead? _currentReview;
   Timer? _pollingTimer;
   ProjectStats? _stats;
+  List<Task> _tasks = [];
+  StreamSubscription<Task>? _taskUpdateSubscription;
+  StreamSubscription<String>? _taskDeleteSubscription;
 
   @override
   void initState() {
@@ -71,6 +74,8 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
     _getProjectDetails();
     _loadActivityData();
     _loadReview();
+    _taskUpdateSubscription = _taskService.taskUpdates.listen(_onTaskUpdated);
+    _taskDeleteSubscription = _taskService.taskDeletions.listen(_onTaskDeleted);
   }
 
   @override
@@ -78,6 +83,7 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
     super.didUpdateWidget(oldWidget);
     if (widget.project?.id != oldWidget.project?.id) {
       _updateData();
+      _tasks = [];
       _loadActivityData();
       _stopPolling();
       _loadReview();
@@ -88,9 +94,61 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
   void dispose() {
     _debounceTimer?.cancel();
     _pollingTimer?.cancel();
+    _taskUpdateSubscription?.cancel();
+    _taskDeleteSubscription?.cancel();
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  void _onTaskUpdated(Task updatedTask) {
+    if (!mounted) return;
+    if (updatedTask.projectId != widget.project?.id) return;
+    setState(() {
+      final index = _tasks.indexWhere((t) => t.id == updatedTask.id);
+      if (index != -1) {
+        _tasks[index] = updatedTask;
+      } else {
+        _tasks.add(updatedTask);
+        if (_stats != null) {
+          _stats = ProjectStats(
+            total: _stats!.total + 1,
+            active: _stats!.active,
+            completed: _stats!.completed,
+          );
+        }
+      }
+      _recomputeCounts();
+    });
+  }
+
+  void _onTaskDeleted(String taskId) {
+    if (!mounted) return;
+    final index = _tasks.indexWhere((t) => t.id == taskId);
+    if (index == -1) return;
+    setState(() {
+      _tasks.removeAt(index);
+      if (_stats != null) {
+        _stats = ProjectStats(
+          total: _stats!.total - 1,
+          active: _stats!.active,
+          completed: _stats!.completed,
+        );
+      }
+      _recomputeCounts();
+    });
+  }
+
+  void _recomputeCounts() {
+    _activeTaskCount = _tasks.where((t) => t.status != 'DONE').length;
+    _doneTaskCount = _tasks.where((t) => t.status == 'DONE').length;
+    if (_stats != null) {
+      _stats = ProjectStats(
+        total: _stats!.total,
+        active: _activeTaskCount,
+        completed: _doneTaskCount,
+      );
+    }
   }
 
   Future<void> _getProjectDetails() async {
@@ -114,6 +172,7 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
       final stats = await statsFuture;
       if (mounted) {
         setState(() {
+          _tasks = tasks;
           _activityData = _computeActivityData(tasks);
           _activeTaskCount = tasks.where((t) => t.status != 'DONE').length;
           _doneTaskCount = tasks.where((t) => t.status == 'DONE').length;

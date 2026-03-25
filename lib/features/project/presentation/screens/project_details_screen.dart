@@ -41,6 +41,7 @@ class ProjectDetailsScreen extends StatelessWidget {
       emptyListMessage: 'В этом проекте нет активных задач',
       onTaskTap: onTaskTap,
       service: taskService,
+      removeIf: (task) => task.projectId != project.id,
     );
   }
 }

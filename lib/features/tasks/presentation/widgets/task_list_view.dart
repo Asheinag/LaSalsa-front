@@ -22,6 +22,7 @@ class TaskListView extends StatefulWidget {
   final String? initialValue;
   final DateTime? initialDate;
   final bool hideCompleted;
+  final bool Function(Task)? removeIf;
 
   const TaskListView({
     super.key,
@@ -34,6 +35,7 @@ class TaskListView extends StatefulWidget {
     this.initialValue,
     this.initialDate,
     this.hideCompleted = false,
+    this.removeIf,
   });
 
   @override
@@ -85,6 +87,10 @@ class _TaskListViewState extends State<TaskListView> {
     setState(() {
       final index = _tasks.indexWhere((t) => t.id == updatedTask.id);
       if (index != -1) {
+        if (widget.removeIf != null && widget.removeIf!(updatedTask)) {
+          _tasks.removeAt(index);
+          return;
+        }
         if (widget.initialDate != null) {
           final taskDate = updatedTask.plannedAt;
           final listDate = widget.initialDate!;

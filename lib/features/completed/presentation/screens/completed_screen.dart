@@ -75,7 +75,7 @@ class _CompletedScreenState extends State<CompletedScreen> {
                 isActive: _activeTab == 0,
                 onTap: () => setState(() => _activeTab = 0),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 12),
               _TabButton(
                 label: 'Проекты',
                 isActive: _activeTab == 1,
