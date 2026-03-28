@@ -13,7 +13,10 @@ void main() {
 
   setUp(() {
     mockDio = MockDio();
-    taskService = TaskService(dio: mockDio);
+    taskService = TaskService(
+      dio: mockDio,
+      getTimezone: () async => 'Europe/Moscow',
+    );
   });
 
   // Группа тестов для нашего сервиса

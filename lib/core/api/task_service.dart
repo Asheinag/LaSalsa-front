@@ -4,9 +4,11 @@ import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 import 'package:kabachok_lasalsa_front/core/api/config.dart';
 import 'package:kabachok_lasalsa_front/core/api/auth_interceptor.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 
 class TaskService {
   final Dio _dio;
+  final Future<String> Function() _getTimezone;
   static final String _url = apiBaseUrl;
 
   final _taskUpdateController = StreamController<Task>.broadcast();
@@ -15,7 +17,9 @@ class TaskService {
   final _taskDeleteController = StreamController<String>.broadcast();
   Stream<String> get taskDeletions => _taskDeleteController.stream;
 
-  TaskService({Dio? dio}) : _dio = dio ?? Dio(BaseOptions(baseUrl: _url)) {
+  TaskService({Dio? dio, Future<String> Function()? getTimezone})
+      : _dio = dio ?? Dio(BaseOptions(baseUrl: _url)),
+        _getTimezone = getTimezone ?? FlutterTimezone.getLocalTimezone {
     if (dio == null) {
       _dio.interceptors.add(AuthInterceptor());
     }
@@ -27,13 +31,14 @@ class TaskService {
     required String limit,
   }) async {
     await Future.delayed(const Duration(seconds: 1));
+    final timezone = await _getTimezone();
     try {
       final response = await _dio.get(
         '/tasks/today',
         queryParameters: {
           'offset': offset,
           'limit': limit,
-          'timezone': DateTime.now().timeZoneName,
+          'timezone': timezone,
         },
       );
       final List<dynamic> jsonData = response.data;
