@@ -263,5 +263,91 @@ void main() {
       // ACT
       await taskService.deleteTask(taskId: '1');
     });
+
+    test('getTodayTasks should pass timezone in queryParameters', () async {
+      // ARRANGE
+      when(
+        mockDio.get(any, queryParameters: anyNamed('queryParameters')),
+      ).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: ''),
+          data: [],
+          statusCode: 200,
+        ),
+      );
+
+      // ACT
+      await taskService.getTodayTasks(limit: '10', offset: '0');
+
+      // ASSERT — проверяем, что timezone реально попал в запрос
+      final captured = verify(
+        mockDio.get(
+          '/tasks/today',
+          queryParameters: captureAnyNamed('queryParameters'),
+        ),
+      ).captured;
+      final params = captured.first as Map<String, dynamic>;
+      expect(params['timezone'], 'Europe/Moscow');
+      expect(params['limit'], '10');
+      expect(params['offset'], '0');
+    });
+
+    test('createTask should emit new task to stream', () async {
+      // ARRANGE
+      final fakeResponse = {
+        "id": 1,
+        "name": "Stream Task",
+        "description": "",
+        "status": "TODO",
+      };
+      when(mockDio.post(any, data: anyNamed('data'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: ''),
+          data: fakeResponse,
+          statusCode: 201,
+        ),
+      );
+
+      // ASSERT
+      expectLater(taskService.taskUpdates, emits(isA<Task>()));
+
+      // ACT
+      await taskService.createTask(taskName: 'Stream Task');
+    });
+
+    test('patchTaskFields should update task and emit to stream', () async {
+      // ARRANGE
+      final fakeResponse = {
+        "id": 1,
+        "name": "Patched Task",
+        "description": "desc",
+        "status": "IN_PROGRESS",
+      };
+      when(mockDio.patch(any, data: anyNamed('data'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: ''),
+          data: fakeResponse,
+          statusCode: 200,
+        ),
+      );
+
+      // ASSERT — стрим должен эмитить обновлённую задачу
+      expectLater(taskService.taskUpdates, emits(isA<Task>()));
+
+      // ACT
+      final result = await taskService.patchTaskFields('1', {
+        'status': 'IN_PROGRESS',
+        'planned_at': null,
+      });
+
+      expect(result, isA<Task>());
+      expect(result.status, 'IN_PROGRESS');
+      verify(
+        mockDio.patch(
+          '/tasks/1',
+          data: {'status': 'IN_PROGRESS', 'planned_at': null},
+        ),
+      ).called(1);
+    });
   });
 }
