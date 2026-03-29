@@ -5,23 +5,24 @@ import 'package:kabachok_lasalsa_front/core/theme/app_text_styles.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/widgets/task_list_base.dart';
+import 'package:kabachok_lasalsa_front/core/widgets/task_list_item.dart';
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/quick_add_task_bar.dart';
 
-// Определяем тип для функции-загрузчика
-typedef TasksFetcher = Future<List<Task>> Function();
+typedef TasksFetcher = Future<List<Task>> Function(int offset, int limit);
 typedef TaskCreator = Future<Task> Function(String title, DateTime? plannedAt);
 
 class TaskListView extends StatefulWidget {
-  final String title; // Заголовок экрана
-  final TasksFetcher fetcher; // Функция для загрузки задач
-  final TaskCreator creator; // Функция для создания задачи
-  final String emptyListMessage; // Сообщение для пустого списка
-  final Function(Task)? onTaskTap; // Обработчик нажатия на задачу
+  final String title;
+  final TasksFetcher fetcher;
+  final TaskCreator creator;
+  final String emptyListMessage;
+  final Function(Task)? onTaskTap;
   final TaskService? service;
   final String? initialValue;
   final DateTime? initialDate;
-  final bool hideCompleted; // Скрывать выполненные задачи по умолчанию
+  final bool hideCompleted;
+  final bool Function(Task)? removeIf;
 
   const TaskListView({
     super.key,
@@ -34,6 +35,7 @@ class TaskListView extends StatefulWidget {
     this.initialValue,
     this.initialDate,
     this.hideCompleted = false,
+    this.removeIf,
   });
 
   @override
@@ -42,17 +44,23 @@ class TaskListView extends StatefulWidget {
 
 class _TaskListViewState extends State<TaskListView> {
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
   String? _error;
   List<Task> _tasks = [];
   bool _showCompleted = false;
   late final TaskService _taskService;
+  late final ScrollController _scrollController;
   StreamSubscription<Task>? _taskSubscription;
   StreamSubscription<String>? _taskDeleteSubscription;
+
+  static const int _pageSize = 30;
 
   @override
   void initState() {
     super.initState();
     _taskService = widget.service ?? TaskService();
+    _scrollController = ScrollController()..addListener(_onScroll);
     _fetchTasks();
     _taskSubscription = _taskService.taskUpdates.listen(_onTaskUpdated);
     _taskDeleteSubscription = _taskService.taskDeletions.listen(_onTaskDeleted);
@@ -60,9 +68,18 @@ class _TaskListViewState extends State<TaskListView> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _taskSubscription?.cancel();
     _taskDeleteSubscription?.cancel();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (widget.hideCompleted) return;
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
   }
 
   void _onTaskUpdated(Task updatedTask) {
@@ -70,13 +87,14 @@ class _TaskListViewState extends State<TaskListView> {
     setState(() {
       final index = _tasks.indexWhere((t) => t.id == updatedTask.id);
       if (index != -1) {
-        // Если задана начальная дата (например, для списка "Сегодня"),
-        // проверяем, совпадает ли дата задачи с ней.
+        if (widget.removeIf != null && widget.removeIf!(updatedTask)) {
+          _tasks.removeAt(index);
+          return;
+        }
         if (widget.initialDate != null) {
           final taskDate = updatedTask.plannedAt;
           final listDate = widget.initialDate!;
-          final isSameDay =
-              taskDate != null &&
+          final isSameDay = taskDate != null &&
               taskDate.year == listDate.year &&
               taskDate.month == listDate.month &&
               taskDate.day == listDate.day;
@@ -92,18 +110,17 @@ class _TaskListViewState extends State<TaskListView> {
 
   void _onTaskDeleted(String taskId) {
     if (!mounted) return;
-    setState(() {
-      _tasks.removeWhere((t) => t.id == taskId);
-    });
+    setState(() => _tasks.removeWhere((t) => t.id == taskId));
   }
 
   Future<void> _fetchTasks() async {
-    // Теперь мы вызываем ту функцию, которую нам передали
     try {
-      final tasks = await widget.fetcher();
+      final limit = widget.hideCompleted ? 9999 : _pageSize;
+      final tasks = await widget.fetcher(0, limit);
       if (mounted) {
         setState(() {
           _tasks = tasks;
+          _hasMore = !widget.hideCompleted && tasks.length == _pageSize;
           _isLoading = false;
         });
       }
@@ -118,26 +135,34 @@ class _TaskListViewState extends State<TaskListView> {
     }
   }
 
-  Future<void> _handleStatusUpdate(Task task, String newStatus) async {
-    // Функция для обработки изменения статуса задачи
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+    setState(() => _isLoadingMore = true);
     try {
-      // 1. Вызываем сервис для обновления задачи на бэкенде
+      final newTasks = await widget.fetcher(_tasks.length, _pageSize);
+      if (mounted) {
+        setState(() {
+          _tasks.addAll(newTasks);
+          _hasMore = newTasks.length == _pageSize;
+          _isLoadingMore = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingMore = false);
+    }
+  }
+
+  Future<void> _handleStatusUpdate(Task task, String newStatus) async {
+    try {
       final updatedTask = await _taskService.updateTaskStatus(
         taskId: task.id,
         taskStatus: newStatus,
       );
-
-      // 2. Обновляем наш локальный список задач
       setState(() {
-        // Находим индекс старой задачи в списке
         final index = _tasks.indexWhere((t) => t.id == task.id);
-        if (index != -1) {
-          // Заменяем старую задачу на обновленную, полученную с сервера
-          _tasks[index] = updatedTask;
-        }
+        if (index != -1) _tasks[index] = updatedTask;
       });
     } catch (e) {
-      // Можно показать ошибку пользователю
       logger.e('Не удалось обновить задачу: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -149,18 +174,15 @@ class _TaskListViewState extends State<TaskListView> {
 
   Future<void> _handleAddTask(String title, DateTime? date) async {
     if (title.isEmpty) return;
-    // Функция для обработки добавления новой задачи
     try {
       final newTask = await widget.creator(title, date);
-      setState(() {
-        _tasks.insert(0, newTask); // Добавляем новую задачу в начало списка
-      });
+      setState(() => _tasks.insert(0, newTask));
     } catch (e) {
       logger.e('Не удалось создать задачу: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Ошибка создания задачи')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ошибка создания задачи')),
+        );
       }
     }
   }
@@ -171,19 +193,71 @@ class _TaskListViewState extends State<TaskListView> {
     }
     if (_error != null) {
       return Center(
-        child: Text(_error!, style: AppTextStyles.bodyText.copyWith(color: AppColors.accent)),
+        child: Text(
+          _error!,
+          style: AppTextStyles.bodyText.copyWith(color: AppColors.accent),
+        ),
       );
     }
 
+    // ── Infinite scroll (hideCompleted: false) ──────────────────────────────
     if (!widget.hideCompleted) {
-      return TaskListBase(
-        tasks: _tasks,
-        onTaskStatusChanged: _handleStatusUpdate,
-        emptyListMessage: widget.emptyListMessage,
-        onTaskTap: widget.onTaskTap,
+      if (_tasks.isEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Text(
+              widget.emptyListMessage,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyText.copyWith(color: AppColors.textSecondary),
+            ),
+          ),
+        );
+      }
+      return ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        itemCount: _tasks.length + 1,
+        itemBuilder: (context, index) {
+          if (index == _tasks.length) {
+            if (_isLoadingMore) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              );
+            }
+            if (!_hasMore) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: Text(
+                    'Все задачи загружены',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }
+          final task = _tasks[index];
+          return TaskListItem(
+            task: task,
+            onStatusChanged: (newStatus) => _handleStatusUpdate(task, newStatus),
+            onTap: widget.onTaskTap != null ? () => widget.onTaskTap!(task) : null,
+          );
+        },
       );
     }
 
+    // ── Режим hideCompleted: true (one-time load, показ выполненных) ────────
     final activeTasks = _tasks.where((t) => t.status != 'DONE').toList();
     final doneTasks = _tasks.where((t) => t.status == 'DONE').toList();
 
@@ -216,7 +290,8 @@ class _TaskListViewState extends State<TaskListView> {
                       _showCompleted
                           ? 'Скрыть выполненные'
                           : 'Выполнено (${doneTasks.length})',
-                      style: AppTextStyles.bodyText.copyWith(color: AppColors.textMuted),
+                      style: AppTextStyles.bodyText
+                          .copyWith(color: AppColors.textMuted),
                     ),
                   ],
                 ),

@@ -4,15 +4,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
+import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/models/project.dart';
 import 'package:kabachok_lasalsa_front/features/project/presentation/screens/project_details_screen.dart';
 
-@GenerateMocks([TaskService])
+@GenerateMocks([TaskService, ProjectService])
 import 'project_screen_test.mocks.dart';
 
 void main() {
   late MockTaskService mockTaskService;
+  late MockProjectService mockProjectService;
   const testProjectId = '5';
   final testProject = Project(
     id: testProjectId,
@@ -23,18 +25,23 @@ void main() {
 
   setUp(() {
     mockTaskService = MockTaskService();
+    mockProjectService = MockProjectService();
     when(mockTaskService.taskUpdates).thenAnswer((_) => Stream.empty());
     when(mockTaskService.taskDeletions).thenAnswer((_) => Stream.empty());
+    when(mockProjectService.projectUpdates).thenAnswer((_) => Stream.empty());
+    when(mockProjectService.projectDeletions).thenAnswer((_) => Stream.empty());
+    when(
+      mockProjectService.getActiveProjectTasks(
+        projectId: anyNamed('projectId'),
+        offset: anyNamed('offset'),
+        limit: anyNamed('limit'),
+      ),
+    ).thenAnswer((_) async => []);
   });
 
   testWidgets('ProjectScreen adds task with correct Project ID', (
     tester,
   ) async {
-    // 1. Мокаем получение задач проекта
-    when(
-      mockTaskService.getTasksByProject(projectId: testProjectId),
-    ).thenAnswer((_) async => []);
-
     // 2. Мокаем создание задачи
     when(
       mockTaskService.createTask(
@@ -52,12 +59,13 @@ void main() {
       ),
     );
 
-    // 3. Рендерим (ProjectScreen должен быть обновлен для приема service)
+    // 3. Рендерим
     await tester.pumpWidget(
       MaterialApp(
         home: ProjectDetailsScreen(
           project: testProject,
           service: mockTaskService,
+          projectSvc: mockProjectService,
         ),
       ),
     );
@@ -101,7 +109,11 @@ void main() {
     ];
 
     when(
-      mockTaskService.getTasksByProject(projectId: testProjectId),
+      mockProjectService.getActiveProjectTasks(
+        projectId: testProjectId,
+        offset: '0',
+        limit: '30',
+      ),
     ).thenAnswer((_) async => fakeTasks);
 
     // Mock the creator as well
@@ -127,6 +139,7 @@ void main() {
         home: ProjectDetailsScreen(
           project: testProject,
           service: mockTaskService,
+          projectSvc: mockProjectService,
         ),
       ),
     );

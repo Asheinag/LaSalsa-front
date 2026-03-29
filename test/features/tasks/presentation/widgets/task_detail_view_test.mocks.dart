@@ -202,6 +202,50 @@ class MockTaskService extends _i1.Mock implements _i4.TaskService {
           as _i5.Future<_i2.Task>);
 
   @override
+  _i5.Future<List<_i2.Task>> getActiveTasks({
+    required String? offset,
+    required String? limit,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getActiveTasks, [], {
+              #offset: offset,
+              #limit: limit,
+            }),
+            returnValue: _i5.Future<List<_i2.Task>>.value(<_i2.Task>[]),
+          )
+          as _i5.Future<List<_i2.Task>>);
+
+  @override
+  _i5.Future<List<_i2.Task>> getCompletedTasks({
+    required String? offset,
+    required String? limit,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getCompletedTasks, [], {
+              #offset: offset,
+              #limit: limit,
+            }),
+            returnValue: _i5.Future<List<_i2.Task>>.value(<_i2.Task>[]),
+          )
+          as _i5.Future<List<_i2.Task>>);
+
+  @override
+  _i5.Future<_i2.Task> patchTaskFields(
+    String? taskId,
+    Map<String, dynamic>? data,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#patchTaskFields, [taskId, data]),
+            returnValue: _i5.Future<_i2.Task>.value(
+              _FakeTask_0(
+                this,
+                Invocation.method(#patchTaskFields, [taskId, data]),
+              ),
+            ),
+          )
+          as _i5.Future<_i2.Task>);
+
+  @override
   _i5.Future<void> deleteTask({required String? taskId}) =>
       (super.noSuchMethod(
             Invocation.method(#deleteTask, [], {#taskId: taskId}),

@@ -8,6 +8,7 @@ import 'package:kabachok_lasalsa_front/core/theme/project_colors.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/ai_review_service.dart';
+import 'package:kabachok_lasalsa_front/core/models/project_stats.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/injection_container.dart';
 import 'package:kabachok_lasalsa_front/features/ai_review/data/models/ai_review.dart';
@@ -57,6 +58,10 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
   _AiReviewState _aiState = _AiReviewState.loading;
   AIReviewRead? _currentReview;
   Timer? _pollingTimer;
+  ProjectStats? _stats;
+  List<Task> _tasks = [];
+  StreamSubscription<Task>? _taskUpdateSubscription;
+  StreamSubscription<String>? _taskDeleteSubscription;
 
   @override
   void initState() {
@@ -69,6 +74,8 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
     _getProjectDetails();
     _loadActivityData();
     _loadReview();
+    _taskUpdateSubscription = _taskService.taskUpdates.listen(_onTaskUpdated);
+    _taskDeleteSubscription = _taskService.taskDeletions.listen(_onTaskDeleted);
   }
 
   @override
@@ -76,6 +83,7 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
     super.didUpdateWidget(oldWidget);
     if (widget.project?.id != oldWidget.project?.id) {
       _updateData();
+      _tasks = [];
       _loadActivityData();
       _stopPolling();
       _loadReview();
@@ -86,9 +94,61 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
   void dispose() {
     _debounceTimer?.cancel();
     _pollingTimer?.cancel();
+    _taskUpdateSubscription?.cancel();
+    _taskDeleteSubscription?.cancel();
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  void _onTaskUpdated(Task updatedTask) {
+    if (!mounted) return;
+    if (updatedTask.projectId != widget.project?.id) return;
+    setState(() {
+      final index = _tasks.indexWhere((t) => t.id == updatedTask.id);
+      if (index != -1) {
+        _tasks[index] = updatedTask;
+      } else {
+        _tasks.add(updatedTask);
+        if (_stats != null) {
+          _stats = ProjectStats(
+            total: _stats!.total + 1,
+            active: _stats!.active,
+            completed: _stats!.completed,
+          );
+        }
+      }
+      _recomputeCounts();
+    });
+  }
+
+  void _onTaskDeleted(String taskId) {
+    if (!mounted) return;
+    final index = _tasks.indexWhere((t) => t.id == taskId);
+    if (index == -1) return;
+    setState(() {
+      _tasks.removeAt(index);
+      if (_stats != null) {
+        _stats = ProjectStats(
+          total: _stats!.total - 1,
+          active: _stats!.active,
+          completed: _stats!.completed,
+        );
+      }
+      _recomputeCounts();
+    });
+  }
+
+  void _recomputeCounts() {
+    _activeTaskCount = _tasks.where((t) => t.status != 'DONE').length;
+    _doneTaskCount = _tasks.where((t) => t.status == 'DONE').length;
+    if (_stats != null) {
+      _stats = ProjectStats(
+        total: _stats!.total,
+        active: _activeTaskCount,
+        completed: _doneTaskCount,
+      );
+    }
   }
 
   Future<void> _getProjectDetails() async {
@@ -106,12 +166,17 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
   Future<void> _loadActivityData() async {
     if (widget.project == null) return;
     try {
-      final tasks = await _taskService.getTasksByProject(projectId: widget.project!.id);
+      final tasksFuture = _taskService.getTasksByProject(projectId: widget.project!.id);
+      final statsFuture = _projectService.getProjectStats(projectId: widget.project!.id);
+      final tasks = await tasksFuture;
+      final stats = await statsFuture;
       if (mounted) {
         setState(() {
+          _tasks = tasks;
           _activityData = _computeActivityData(tasks);
           _activeTaskCount = tasks.where((t) => t.status != 'DONE').length;
           _doneTaskCount = tasks.where((t) => t.status == 'DONE').length;
+          _stats = stats;
         });
       }
     } catch (_) {}
@@ -268,6 +333,21 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
     }
   }
 
+  Future<void> _clearDeadline() async {
+    final previous = widget.project!;
+    _performUpdate(previous.copyWithClearedDeadline());
+    try {
+      await _projectService.patchProjectFields(previous.id, {'deadline': null});
+    } catch (_) {
+      if (mounted) {
+        _performUpdate(previous);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось сохранить')),
+        );
+      }
+    }
+  }
+
   Future<void> _deleteProject() async {
     if (widget.project == null) return;
     try {
@@ -374,7 +454,9 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
           ),
           const SizedBox(height: 6),
           Text(
-            '$_activeTaskCount активных · $_doneTaskCount выполнено',
+            _stats != null
+                ? '$_activeTaskCount активных · $_doneTaskCount выполнено · ${_stats!.total} всего'
+                : '$_activeTaskCount активных · $_doneTaskCount выполнено',
             style: AppTextStyles.metaText,
           ),
           const SizedBox(height: 8),
@@ -442,6 +524,7 @@ class _ProjectDetailsViewState extends State<ProjectDetailsView> {
 
           _FieldRow(
             label: 'Дедлайн',
+            onClear: widget.project?.deadline != null ? _clearDeadline : null,
             child: GestureDetector(
               onTap: _changeDeadline,
               child: MouseRegion(
@@ -711,7 +794,8 @@ class _SectionLabel extends StatelessWidget {
 class _FieldRow extends StatelessWidget {
   final String label;
   final Widget child;
-  const _FieldRow({required this.label, required this.child});
+  final VoidCallback? onClear;
+  const _FieldRow({required this.label, required this.child, this.onClear});
 
   @override
   Widget build(BuildContext context) {
@@ -723,6 +807,16 @@ class _FieldRow extends StatelessWidget {
           SizedBox(width: 100, child: Text(label, style: AppTextStyles.bodySmall)),
           const SizedBox(width: 10),
           Expanded(child: child),
+          if (onClear != null)
+            IconButton(
+              icon: const Icon(Icons.close, size: 14),
+              onPressed: onClear,
+              tooltip: 'Очистить',
+              color: AppColors.textMuted,
+              hoverColor: AppColors.textSecondary.withValues(alpha: 0.1),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+            ),
         ],
       ),
     );

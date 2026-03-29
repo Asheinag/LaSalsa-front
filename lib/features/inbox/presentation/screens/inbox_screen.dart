@@ -16,14 +16,15 @@ class InboxScreen extends StatelessWidget {
     return TaskListView(
       key: const ValueKey('inbox_screen'),
       title: 'Входящие',
-      // Передаем ДРУГУЮ функцию для загрузки
-      fetcher: () => taskService.getTasks(offset: '0', limit: '20'),
+      fetcher: (offset, limit) => taskService.getActiveTasks(
+        offset: '$offset',
+        limit: '$limit',
+      ),
       creator: (title, plannedAt) =>
           taskService.createTask(taskName: title, plannedAt: plannedAt),
       emptyListMessage: 'Вообще нет задач! Вы сделали всё!',
       onTaskTap: onTaskTap,
       service: taskService,
-      hideCompleted: true,
     );
   }
 }

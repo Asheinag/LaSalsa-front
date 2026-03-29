@@ -3,9 +3,12 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i4;
+import 'dart:async' as _i6;
 
-import 'package:kabachok_lasalsa_front/core/api/task_service.dart' as _i3;
+import 'package:kabachok_lasalsa_front/core/api/project_service.dart' as _i7;
+import 'package:kabachok_lasalsa_front/core/api/task_service.dart' as _i5;
+import 'package:kabachok_lasalsa_front/core/models/project.dart' as _i3;
+import 'package:kabachok_lasalsa_front/core/models/project_stats.dart' as _i4;
 import 'package:kabachok_lasalsa_front/core/models/task.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
 
@@ -29,32 +32,42 @@ class _FakeTask_0 extends _i1.SmartFake implements _i2.Task {
     : super(parent, parentInvocation);
 }
 
+class _FakeProject_1 extends _i1.SmartFake implements _i3.Project {
+  _FakeProject_1(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeProjectStats_2 extends _i1.SmartFake implements _i4.ProjectStats {
+  _FakeProjectStats_2(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
 /// A class which mocks [TaskService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockTaskService extends _i1.Mock implements _i3.TaskService {
+class MockTaskService extends _i1.Mock implements _i5.TaskService {
   MockTaskService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i4.Stream<_i2.Task> get taskUpdates =>
+  _i6.Stream<_i2.Task> get taskUpdates =>
       (super.noSuchMethod(
             Invocation.getter(#taskUpdates),
-            returnValue: _i4.Stream<_i2.Task>.empty(),
+            returnValue: _i6.Stream<_i2.Task>.empty(),
           )
-          as _i4.Stream<_i2.Task>);
+          as _i6.Stream<_i2.Task>);
 
   @override
-  _i4.Stream<String> get taskDeletions =>
+  _i6.Stream<String> get taskDeletions =>
       (super.noSuchMethod(
             Invocation.getter(#taskDeletions),
-            returnValue: _i4.Stream<String>.empty(),
+            returnValue: _i6.Stream<String>.empty(),
           )
-          as _i4.Stream<String>);
+          as _i6.Stream<String>);
 
   @override
-  _i4.Future<List<_i2.Task>> getTodayTasks({
+  _i6.Future<List<_i2.Task>> getTodayTasks({
     required String? offset,
     required String? limit,
   }) =>
@@ -63,12 +76,12 @@ class MockTaskService extends _i1.Mock implements _i3.TaskService {
               #offset: offset,
               #limit: limit,
             }),
-            returnValue: _i4.Future<List<_i2.Task>>.value(<_i2.Task>[]),
+            returnValue: _i6.Future<List<_i2.Task>>.value(<_i2.Task>[]),
           )
-          as _i4.Future<List<_i2.Task>>);
+          as _i6.Future<List<_i2.Task>>);
 
   @override
-  _i4.Future<_i2.Task> updateTaskStatus({
+  _i6.Future<_i2.Task> updateTaskStatus({
     required String? taskId,
     required String? taskStatus,
   }) =>
@@ -77,7 +90,7 @@ class MockTaskService extends _i1.Mock implements _i3.TaskService {
               #taskId: taskId,
               #taskStatus: taskStatus,
             }),
-            returnValue: _i4.Future<_i2.Task>.value(
+            returnValue: _i6.Future<_i2.Task>.value(
               _FakeTask_0(
                 this,
                 Invocation.method(#updateTaskStatus, [], {
@@ -87,21 +100,21 @@ class MockTaskService extends _i1.Mock implements _i3.TaskService {
               ),
             ),
           )
-          as _i4.Future<_i2.Task>);
+          as _i6.Future<_i2.Task>);
 
   @override
-  _i4.Future<List<_i2.Task>> getTasks({
+  _i6.Future<List<_i2.Task>> getTasks({
     required String? offset,
     required String? limit,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#getTasks, [], {#offset: offset, #limit: limit}),
-            returnValue: _i4.Future<List<_i2.Task>>.value(<_i2.Task>[]),
+            returnValue: _i6.Future<List<_i2.Task>>.value(<_i2.Task>[]),
           )
-          as _i4.Future<List<_i2.Task>>);
+          as _i6.Future<List<_i2.Task>>);
 
   @override
-  _i4.Future<_i2.Task> createTask({
+  _i6.Future<_i2.Task> createTask({
     required String? taskName,
     String? description,
     DateTime? plannedAt,
@@ -116,7 +129,7 @@ class MockTaskService extends _i1.Mock implements _i3.TaskService {
               #projectId: projectId,
               #parentId: parentId,
             }),
-            returnValue: _i4.Future<_i2.Task>.value(
+            returnValue: _i6.Future<_i2.Task>.value(
               _FakeTask_0(
                 this,
                 Invocation.method(#createTask, [], {
@@ -129,18 +142,18 @@ class MockTaskService extends _i1.Mock implements _i3.TaskService {
               ),
             ),
           )
-          as _i4.Future<_i2.Task>);
+          as _i6.Future<_i2.Task>);
 
   @override
-  _i4.Future<List<_i2.Task>> getTasksByProject({required String? projectId}) =>
+  _i6.Future<List<_i2.Task>> getTasksByProject({required String? projectId}) =>
       (super.noSuchMethod(
             Invocation.method(#getTasksByProject, [], {#projectId: projectId}),
-            returnValue: _i4.Future<List<_i2.Task>>.value(<_i2.Task>[]),
+            returnValue: _i6.Future<List<_i2.Task>>.value(<_i2.Task>[]),
           )
-          as _i4.Future<List<_i2.Task>>);
+          as _i6.Future<List<_i2.Task>>);
 
   @override
-  _i4.Future<_i2.Task> updateTask({
+  _i6.Future<_i2.Task> updateTask({
     required String? taskId,
     String? name,
     String? description,
@@ -161,7 +174,7 @@ class MockTaskService extends _i1.Mock implements _i3.TaskService {
               #parentId: parentId,
               #colorId: colorId,
             }),
-            returnValue: _i4.Future<_i2.Task>.value(
+            returnValue: _i6.Future<_i2.Task>.value(
               _FakeTask_0(
                 this,
                 Invocation.method(#updateTask, [], {
@@ -177,29 +190,247 @@ class MockTaskService extends _i1.Mock implements _i3.TaskService {
               ),
             ),
           )
-          as _i4.Future<_i2.Task>);
+          as _i6.Future<_i2.Task>);
 
   @override
-  _i4.Future<_i2.Task> getTaskDetails({required String? taskId}) =>
+  _i6.Future<_i2.Task> getTaskDetails({required String? taskId}) =>
       (super.noSuchMethod(
             Invocation.method(#getTaskDetails, [], {#taskId: taskId}),
-            returnValue: _i4.Future<_i2.Task>.value(
+            returnValue: _i6.Future<_i2.Task>.value(
               _FakeTask_0(
                 this,
                 Invocation.method(#getTaskDetails, [], {#taskId: taskId}),
               ),
             ),
           )
-          as _i4.Future<_i2.Task>);
+          as _i6.Future<_i2.Task>);
 
   @override
-  _i4.Future<void> deleteTask({required String? taskId}) =>
+  _i6.Future<List<_i2.Task>> getActiveTasks({
+    required String? offset,
+    required String? limit,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getActiveTasks, [], {
+              #offset: offset,
+              #limit: limit,
+            }),
+            returnValue: _i6.Future<List<_i2.Task>>.value(<_i2.Task>[]),
+          )
+          as _i6.Future<List<_i2.Task>>);
+
+  @override
+  _i6.Future<List<_i2.Task>> getCompletedTasks({
+    required String? offset,
+    required String? limit,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getCompletedTasks, [], {
+              #offset: offset,
+              #limit: limit,
+            }),
+            returnValue: _i6.Future<List<_i2.Task>>.value(<_i2.Task>[]),
+          )
+          as _i6.Future<List<_i2.Task>>);
+
+  @override
+  _i6.Future<_i2.Task> patchTaskFields(
+    String? taskId,
+    Map<String, dynamic>? data,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#patchTaskFields, [taskId, data]),
+            returnValue: _i6.Future<_i2.Task>.value(
+              _FakeTask_0(
+                this,
+                Invocation.method(#patchTaskFields, [taskId, data]),
+              ),
+            ),
+          )
+          as _i6.Future<_i2.Task>);
+
+  @override
+  _i6.Future<void> deleteTask({required String? taskId}) =>
       (super.noSuchMethod(
             Invocation.method(#deleteTask, [], {#taskId: taskId}),
-            returnValue: _i4.Future<void>.value(),
-            returnValueForMissingStub: _i4.Future<void>.value(),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
           )
-          as _i4.Future<void>);
+          as _i6.Future<void>);
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
+}
+
+/// A class which mocks [ProjectService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockProjectService extends _i1.Mock implements _i7.ProjectService {
+  MockProjectService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i6.Stream<_i3.Project> get projectUpdates =>
+      (super.noSuchMethod(
+            Invocation.getter(#projectUpdates),
+            returnValue: _i6.Stream<_i3.Project>.empty(),
+          )
+          as _i6.Stream<_i3.Project>);
+
+  @override
+  _i6.Stream<String> get projectDeletions =>
+      (super.noSuchMethod(
+            Invocation.getter(#projectDeletions),
+            returnValue: _i6.Stream<String>.empty(),
+          )
+          as _i6.Stream<String>);
+
+  @override
+  _i6.Future<List<_i3.Project>> getProjects({
+    int? offset = 0,
+    int? limit = 50,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getProjects, [], {
+              #offset: offset,
+              #limit: limit,
+            }),
+            returnValue: _i6.Future<List<_i3.Project>>.value(<_i3.Project>[]),
+          )
+          as _i6.Future<List<_i3.Project>>);
+
+  @override
+  _i6.Future<_i3.Project> createProject({
+    required String? name,
+    String? colorId,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#createProject, [], {
+              #name: name,
+              #colorId: colorId,
+            }),
+            returnValue: _i6.Future<_i3.Project>.value(
+              _FakeProject_1(
+                this,
+                Invocation.method(#createProject, [], {
+                  #name: name,
+                  #colorId: colorId,
+                }),
+              ),
+            ),
+          )
+          as _i6.Future<_i3.Project>);
+
+  @override
+  _i6.Future<void> deleteProject({required String? projectId}) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteProject, [], {#projectId: projectId}),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
+  _i6.Future<_i3.Project> updateProject({
+    required String? projectId,
+    String? name,
+    String? description,
+    String? colorId,
+    DateTime? deadline,
+    String? status,
+    String? type,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateProject, [], {
+              #projectId: projectId,
+              #name: name,
+              #description: description,
+              #colorId: colorId,
+              #deadline: deadline,
+              #status: status,
+              #type: type,
+            }),
+            returnValue: _i6.Future<_i3.Project>.value(
+              _FakeProject_1(
+                this,
+                Invocation.method(#updateProject, [], {
+                  #projectId: projectId,
+                  #name: name,
+                  #description: description,
+                  #colorId: colorId,
+                  #deadline: deadline,
+                  #status: status,
+                  #type: type,
+                }),
+              ),
+            ),
+          )
+          as _i6.Future<_i3.Project>);
+
+  @override
+  _i6.Future<List<_i2.Task>> getActiveProjectTasks({
+    required String? projectId,
+    required String? offset,
+    required String? limit,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getActiveProjectTasks, [], {
+              #projectId: projectId,
+              #offset: offset,
+              #limit: limit,
+            }),
+            returnValue: _i6.Future<List<_i2.Task>>.value(<_i2.Task>[]),
+          )
+          as _i6.Future<List<_i2.Task>>);
+
+  @override
+  _i6.Future<_i4.ProjectStats> getProjectStats({required String? projectId}) =>
+      (super.noSuchMethod(
+            Invocation.method(#getProjectStats, [], {#projectId: projectId}),
+            returnValue: _i6.Future<_i4.ProjectStats>.value(
+              _FakeProjectStats_2(
+                this,
+                Invocation.method(#getProjectStats, [], {
+                  #projectId: projectId,
+                }),
+              ),
+            ),
+          )
+          as _i6.Future<_i4.ProjectStats>);
+
+  @override
+  _i6.Future<List<_i3.Project>> getCompletedProjects({
+    required String? offset,
+    required String? limit,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getCompletedProjects, [], {
+              #offset: offset,
+              #limit: limit,
+            }),
+            returnValue: _i6.Future<List<_i3.Project>>.value(<_i3.Project>[]),
+          )
+          as _i6.Future<List<_i3.Project>>);
+
+  @override
+  _i6.Future<_i3.Project> patchProjectFields(
+    String? projectId,
+    Map<String, dynamic>? data,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#patchProjectFields, [projectId, data]),
+            returnValue: _i6.Future<_i3.Project>.value(
+              _FakeProject_1(
+                this,
+                Invocation.method(#patchProjectFields, [projectId, data]),
+              ),
+            ),
+          )
+          as _i6.Future<_i3.Project>);
 
   @override
   void dispose() => super.noSuchMethod(

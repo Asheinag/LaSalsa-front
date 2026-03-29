@@ -13,7 +13,10 @@ void main() {
 
   setUp(() {
     mockDio = MockDio();
-    taskService = TaskService(dio: mockDio);
+    taskService = TaskService(
+      dio: mockDio,
+      getTimezone: () async => 'Europe/Moscow',
+    );
   });
 
   // Группа тестов для нашего сервиса
@@ -29,7 +32,7 @@ void main() {
         ],
       };
 
-      when(mockDio.get(any)).thenAnswer(
+      when(mockDio.get(any, queryParameters: anyNamed('queryParameters'))).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: ''),
           data: fakeResponse['data'], // Важно передать сам список
@@ -45,7 +48,7 @@ void main() {
       // Дополнительно можем проверить, что список не пустой
       expect(tasks, isNotEmpty);
 
-      verify(mockDio.get('/tasks/today?offset=20&limit=0')).called(1);
+      verify(mockDio.get('/tasks/today', queryParameters: anyNamed('queryParameters'))).called(1);
     });
 
     test('getTodayTasks should return tasks with correct data', () async {
@@ -60,7 +63,7 @@ void main() {
         ],
       };
 
-      when(mockDio.get(any)).thenAnswer(
+      when(mockDio.get(any, queryParameters: anyNamed('queryParameters'))).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: ''),
           data: fakeResponse['data'], // Важно передать сам список
@@ -78,7 +81,7 @@ void main() {
       expect(firstTask.description, 'Позвонить клиенту по договору');
       expect(firstTask.status, 'TODO');
 
-      verify(mockDio.get('/tasks/today?offset=20&limit=0')).called(1);
+      verify(mockDio.get('/tasks/today', queryParameters: anyNamed('queryParameters'))).called(1);
     });
 
     test('createTask should create and return new task ', () async {
@@ -182,7 +185,7 @@ void main() {
     test('getTodayTasks should throw an exception on network error', () async {
       // ARRANGE
       when(
-        mockDio.get(any),
+        mockDio.get(any, queryParameters: anyNamed('queryParameters')),
       ).thenThrow(DioException(requestOptions: RequestOptions(path: '')));
 
       // ACT
@@ -200,7 +203,7 @@ void main() {
           ),
         ),
       );
-      verify(mockDio.get('/tasks/today?offset=20&limit=0')).called(1);
+      verify(mockDio.get('/tasks/today', queryParameters: anyNamed('queryParameters'))).called(1);
     });
 
     test('createTask should throw an exception on network error', () async {
@@ -259,6 +262,92 @@ void main() {
 
       // ACT
       await taskService.deleteTask(taskId: '1');
+    });
+
+    test('getTodayTasks should pass timezone in queryParameters', () async {
+      // ARRANGE
+      when(
+        mockDio.get(any, queryParameters: anyNamed('queryParameters')),
+      ).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: ''),
+          data: [],
+          statusCode: 200,
+        ),
+      );
+
+      // ACT
+      await taskService.getTodayTasks(limit: '10', offset: '0');
+
+      // ASSERT — проверяем, что timezone реально попал в запрос
+      final captured = verify(
+        mockDio.get(
+          '/tasks/today',
+          queryParameters: captureAnyNamed('queryParameters'),
+        ),
+      ).captured;
+      final params = captured.first as Map<String, dynamic>;
+      expect(params['timezone'], 'Europe/Moscow');
+      expect(params['limit'], '10');
+      expect(params['offset'], '0');
+    });
+
+    test('createTask should emit new task to stream', () async {
+      // ARRANGE
+      final fakeResponse = {
+        "id": 1,
+        "name": "Stream Task",
+        "description": "",
+        "status": "TODO",
+      };
+      when(mockDio.post(any, data: anyNamed('data'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: ''),
+          data: fakeResponse,
+          statusCode: 201,
+        ),
+      );
+
+      // ASSERT
+      expectLater(taskService.taskUpdates, emits(isA<Task>()));
+
+      // ACT
+      await taskService.createTask(taskName: 'Stream Task');
+    });
+
+    test('patchTaskFields should update task and emit to stream', () async {
+      // ARRANGE
+      final fakeResponse = {
+        "id": 1,
+        "name": "Patched Task",
+        "description": "desc",
+        "status": "IN_PROGRESS",
+      };
+      when(mockDio.patch(any, data: anyNamed('data'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: ''),
+          data: fakeResponse,
+          statusCode: 200,
+        ),
+      );
+
+      // ASSERT — стрим должен эмитить обновлённую задачу
+      expectLater(taskService.taskUpdates, emits(isA<Task>()));
+
+      // ACT
+      final result = await taskService.patchTaskFields('1', {
+        'status': 'IN_PROGRESS',
+        'planned_at': null,
+      });
+
+      expect(result, isA<Task>());
+      expect(result.status, 'IN_PROGRESS');
+      verify(
+        mockDio.patch(
+          '/tasks/1',
+          data: {'status': 'IN_PROGRESS', 'planned_at': null},
+        ),
+      ).called(1);
     });
   });
 }
