@@ -49,9 +49,25 @@ void main() {
       mockTaskService.taskDeletions,
     ).thenAnswer((_) => taskDeleteController.stream);
     // Настраиваем заглушки для методов, вызываемых при инициализации
-    when(mockProjectService.getProjects()).thenAnswer((_) async => []);
+    when(mockProjectService.getProjects(
+      offset: anyNamed('offset'),
+      limit: anyNamed('limit'),
+    )).thenAnswer((_) async => []);
     when(
       mockTaskService.getTodayTasks(
+        offset: anyNamed('offset'),
+        limit: anyNamed('limit'),
+      ),
+    ).thenAnswer((_) async => []);
+    when(
+      mockTaskService.getActiveTasks(
+        offset: anyNamed('offset'),
+        limit: anyNamed('limit'),
+      ),
+    ).thenAnswer((_) async => []);
+    when(
+      mockProjectService.getActiveProjectTasks(
+        projectId: anyNamed('projectId'),
         offset: anyNamed('offset'),
         limit: anyNamed('limit'),
       ),

@@ -4,9 +4,11 @@ import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 import 'package:kabachok_lasalsa_front/core/api/config.dart';
 import 'package:kabachok_lasalsa_front/core/api/auth_interceptor.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 
 class TaskService {
   final Dio _dio;
+  final Future<String> Function() _getTimezone;
   static final String _url = apiBaseUrl;
 
   final _taskUpdateController = StreamController<Task>.broadcast();
@@ -15,7 +17,9 @@ class TaskService {
   final _taskDeleteController = StreamController<String>.broadcast();
   Stream<String> get taskDeletions => _taskDeleteController.stream;
 
-  TaskService({Dio? dio}) : _dio = dio ?? Dio(BaseOptions(baseUrl: _url)) {
+  TaskService({Dio? dio, Future<String> Function()? getTimezone})
+      : _dio = dio ?? Dio(BaseOptions(baseUrl: _url)),
+        _getTimezone = getTimezone ?? FlutterTimezone.getLocalTimezone {
     if (dio == null) {
       _dio.interceptors.add(AuthInterceptor());
     }
@@ -27,9 +31,15 @@ class TaskService {
     required String limit,
   }) async {
     await Future.delayed(const Duration(seconds: 1));
+    final timezone = await _getTimezone();
     try {
       final response = await _dio.get(
-        '/tasks/today?offset=$offset&limit=$limit',
+        '/tasks/today',
+        queryParameters: {
+          'offset': offset,
+          'limit': limit,
+          'timezone': timezone,
+        },
       );
       final List<dynamic> jsonData = response.data;
       return jsonData.map((taskJson) => Task.fromJson(taskJson)).toList();
@@ -182,6 +192,53 @@ class TaskService {
         'Ошибка Dio при получении деталей задачи: ${e.response?.statusCode}',
       );
       throw Exception('Не удалось получить детали задачи.');
+    }
+  }
+
+  // Получаем активные задачи (is_active=true) с пагинацией
+  Future<List<Task>> getActiveTasks({
+    required String offset,
+    required String limit,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/tasks/?is_active=true&offset=$offset&limit=$limit',
+      );
+      final List<dynamic> jsonData = response.data;
+      return jsonData.map((json) => Task.fromJson(json)).toList();
+    } on DioException catch (e) {
+      logger.e('Ошибка Dio при загрузке активных задач: ${e.response?.statusCode}');
+      throw Exception('Не удалось загрузить задачи.');
+    }
+  }
+
+  // Получаем выполненные задачи (is_active=false)
+  Future<List<Task>> getCompletedTasks({
+    required String offset,
+    required String limit,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/tasks/?is_active=false&offset=$offset&limit=$limit',
+      );
+      final List<dynamic> jsonData = response.data;
+      return jsonData.map((json) => Task.fromJson(json)).toList();
+    } on DioException catch (e) {
+      logger.e('Ошибка Dio при загрузке выполненных задач: ${e.response?.statusCode}');
+      throw Exception('Не удалось загрузить выполненные задачи.');
+    }
+  }
+
+  // Патчим задачу произвольными полями (поддерживает передачу null)
+  Future<Task> patchTaskFields(String taskId, Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.patch('/tasks/$taskId', data: data);
+      final task = Task.fromJson(response.data);
+      _taskUpdateController.add(task);
+      return task;
+    } on DioException catch (e) {
+      logger.e('Ошибка Dio при патче задачи: ${e.response?.statusCode}');
+      throw Exception('Не удалось сохранить изменения.');
     }
   }
 

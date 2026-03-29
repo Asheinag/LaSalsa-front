@@ -1,28 +1,28 @@
-name: CD
+name: Deploy Frontend to Production
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     environment: production
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.32.8"
+          flutter-version: '3.x'
+          channel: 'stable'
 
-      - name: Install dependencies
+      - name: Get dependencies
         run: flutter pub get
 
-      - name: Build Web Release
+      - name: Build web
         run: |
           flutter build web --release \
             --dart-define=API_BASE_URL=${{ secrets.API_BASE_URL }} \
@@ -33,22 +33,13 @@ jobs:
             --dart-define=FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }} \
             --dart-define=FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Deploy static to server
+        uses: appleboy/scp-action@v0.1.7
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Archive and Upload to Server
-        run: |
-          tar -czf frontend.tar.gz -C build/web .
-          scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no frontend.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.LASALSA_HOST }}:/tmp/
-
-      - name: Deploy on Remote Server
-        run: |
-          ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.LASALSA_HOST }} "
-            mkdir -p ~/lasalsa-app/frontend/static
-            rm -rf ~/lasalsa-app/frontend/static/*
-            tar -xzf /tmp/frontend.tar.gz -C ~/lasalsa-app/frontend/static
-            rm /tmp/frontend.tar.gz
-            cd ~/lasalsa-app && docker compose -f docker-compose.prod.yml restart lasalsa-nginx
-          "
+          host: ${{ secrets.LASALSA_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "build/web/*"
+          target: "~/lasalsa-app/frontend/static/"
+          strip_components: 2

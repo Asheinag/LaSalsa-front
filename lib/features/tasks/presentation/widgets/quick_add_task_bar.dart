@@ -19,12 +19,14 @@ class QuickAddTaskBar extends StatefulWidget {
 
 class _QuickAddTaskBarState extends State<QuickAddTaskBar> {
   late final TextEditingController _textController;
+  late final FocusNode _focusNode;
   DateTime? _selectedDate;
 
   @override
   void initState() {
     super.initState();
     _textController = TextEditingController(text: widget.initialValue);
+    _focusNode = FocusNode();
     _selectedDate = widget.initialDate;
   }
 
@@ -36,13 +38,13 @@ class _QuickAddTaskBarState extends State<QuickAddTaskBar> {
 
     widget.onTaskSubmitted(text, _selectedDate);
     _textController.clear();
-    // We don't hide the keyboard to allow for quick entry of multiple tasks
-    // FocusScope.of(context).unfocus(); 
+    _focusNode.requestFocus();
   }
 
   @override
   void dispose() {
     _textController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -109,6 +111,7 @@ class _QuickAddTaskBarState extends State<QuickAddTaskBar> {
             Expanded(
               child: TextField(
                 controller: _textController,
+                focusNode: _focusNode,
                 autofocus: true,
                 decoration: const InputDecoration(
                   hintText: 'Новая задача...',

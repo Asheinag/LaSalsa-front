@@ -19,6 +19,7 @@ import 'package:kabachok_lasalsa_front/injection_container.dart';
 import 'package:kabachok_lasalsa_front/features/today/presentation/screens/today_screen.dart';
 import 'package:kabachok_lasalsa_front/features/inbox/presentation/screens/inbox_screen.dart';
 import 'package:kabachok_lasalsa_front/features/project/presentation/screens/project_details_screen.dart';
+import 'package:kabachok_lasalsa_front/features/completed/presentation/screens/completed_screen.dart';
 // Дебаг
 import 'package:kabachok_lasalsa_front/core/utils/logger.dart';
 
@@ -41,9 +42,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   String _selectedPageId = 'today'; // Задачем начальную страницу - Сегодня
   dynamic _currentPageArgs; // Храним аргументы (например, выбранный проект)
 
-  List<Project> _projects = []; // Список проектов
+  List<Project> _projects = [];
+  int _projectsOffset = 0;
+  bool _hasMoreProjects = true;
 
-  bool _isLoading = true; // Флаг загрузки проектов
+  bool _isLoading = true;
   late final ProjectService _projectService;
   late final TaskService _taskService;
   late final AiReviewService _aiReviewService;
@@ -119,23 +122,45 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     });
   }
 
-  // Метод загрузки проектов
+  static const int _projectsPageSize = 50;
+
   Future<void> _fetchProjects() async {
     try {
-      final projects = await _projectService.getProjects();
+      final projects = await _projectService.getProjects(
+        offset: 0,
+        limit: _projectsPageSize,
+      );
       if (mounted) {
         setState(() {
           _projects = projects.where((p) => p.status == 'ACTIVE').toList();
+          _projectsOffset = _projects.length;
+          _hasMoreProjects = projects.length == _projectsPageSize;
           _isLoading = false;
         });
       }
     } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+      logger.e('Ошибка при загрузке проектов: $e');
+    }
+  }
+
+  Future<void> _loadMoreProjects() async {
+    if (!_hasMoreProjects) return;
+    try {
+      final more = await _projectService.getProjects(
+        offset: _projectsOffset,
+        limit: _projectsPageSize,
+      );
+      final active = more.where((p) => p.status == 'ACTIVE').toList();
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _projects.addAll(active);
+          _projectsOffset += more.length;
+          _hasMoreProjects = more.length == _projectsPageSize;
         });
       }
-      logger.e('Ошибка при загрузке проектов: $e');
+    } catch (e) {
+      logger.e('Ошибка при подгрузке проектов: $e');
     }
   }
 
@@ -202,6 +227,13 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     logger.i('Переключение на страницу: $pageId с аргументами: $args');
   }
 
+  void _handleProjectTap(Project project) {
+    setState(() {
+      _selectedProject = project;
+      _selectedTask = null;
+    });
+  }
+
   // Метод обработки клика по задаче (вызывается из TodayScreen и др)
   void _handleTaskTap(Task task) {
     logger.i('Выбрана задача: ${task.name}');
@@ -235,9 +267,18 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
             project: _currentPageArgs as Project,
             onTaskTap: _handleTaskTap, // Подключаем тап!
             service: _taskService,
+            projectSvc: _projectService,
           );
         }
         return const Center(child: Text("Ошибка: Проект не выбран"));
+
+      case 'completed':
+        return CompletedScreen(
+          taskService: _taskService,
+          projectService: _projectService,
+          onTaskTap: _handleTaskTap,
+          onProjectTap: _handleProjectTap,
+        );
 
       default:
         return const Center(child: Text("404"));
@@ -285,6 +326,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                   onProjectCreated: (newProject) {
                     setState(() => _projects.add(newProject));
                   },
+                  onNeedMoreProjects: _loadMoreProjects,
                   projectService: _projectService,
                   selectedPageId: _selectedPageId,
                   selectedProjectId: _selectedProject?.id,

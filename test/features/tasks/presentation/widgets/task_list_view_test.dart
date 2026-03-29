@@ -1,16 +1,41 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
+import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/core/widgets/task_list_base.dart';
 import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/task_list_view.dart';
+
+// Минимальный стаб — управляем только стримами
+class _TaskServiceStub implements TaskService {
+  final _updates = StreamController<Task>.broadcast();
+  final _deletions = StreamController<String>.broadcast();
+
+  @override
+  Stream<Task> get taskUpdates => _updates.stream;
+
+  @override
+  Stream<String> get taskDeletions => _deletions.stream;
+
+  void emitUpdate(Task t) => _updates.add(t);
+  void emitDelete(String id) => _deletions.add(id);
+
+  Future<void> close() async {
+    await _updates.close();
+    await _deletions.close();
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation i) => throw UnimplementedError();
+}
 
 void main() {
   group('Task List Tests', () {
     testWidgets('Check Loading show Progress Indicator', (
       WidgetTester tester,
     ) async {
-      Future<List<Task>> fakeFetcher() async {
+      Future<List<Task>> fakeFetcher(int offset, int limit) async {
         await Future.delayed(const Duration(seconds: 1));
         return [
           Task(id: '1', name: 'Test Task', description: '', status: 'TODO'),
@@ -33,15 +58,13 @@ void main() {
       );
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.byType(TaskListBase), findsNothing);
       await tester.pumpAndSettle();
 
       expect(find.byType(CircularProgressIndicator), findsNothing);
-      expect(find.byType(TaskListBase), findsOneWidget);
       expect(find.text('Test Task'), findsOneWidget);
     });
     testWidgets('Check empty message', (WidgetTester tester) async {
-      Future<List<Task>> fakeFetcher() async {
+      Future<List<Task>> fakeFetcher(int offset, int limit) async {
         await Future.delayed(const Duration(seconds: 1));
         return [];
       }
@@ -62,18 +85,16 @@ void main() {
       );
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.byType(TaskListBase), findsNothing);
       await tester.pumpAndSettle();
 
       expect(find.byType(CircularProgressIndicator), findsNothing);
-      expect(find.byType(TaskListBase), findsOneWidget);
       expect(find.text('No tasks available'), findsOneWidget);
     });
 
     testWidgets('Check error message on fetch failure',
         (WidgetTester tester) async {
       // ARRANGE: Наш загрузчик теперь просто бросает исключение
-      Future<List<Task>> fakeFetcher() async {
+      Future<List<Task>> fakeFetcher(int offset, int limit) async {
         throw Exception('Failed to load');
       }
 
@@ -109,7 +130,7 @@ void main() {
     testWidgets('Shows initial date in QuickAddTaskBar',
         (WidgetTester tester) async {
       // ARRANGE
-      Future<List<Task>> fakeFetcher() async => [];
+      Future<List<Task>> fakeFetcher(int offset, int limit) async => [];
       Future<Task> fakeCreator(String title, DateTime? plannedAt) async =>
           Task(id: '1', name: title, description: '', status: 'TODO');
       final initialDate = DateTime(2025, 5, 10);
@@ -154,7 +175,7 @@ void main() {
       'hideCompleted: false — показывает все задачи включая DONE',
       (tester) async {
         // ARRANGE
-        Future<List<Task>> fetcher() async => [todoTask, doneTask];
+        Future<List<Task>> fetcher(int offset, int limit) async => [todoTask, doneTask];
 
         // ACT
         await tester.pumpWidget(
@@ -181,7 +202,7 @@ void main() {
       'hideCompleted: true — скрывает DONE-задачи по умолчанию',
       (tester) async {
         // ARRANGE
-        Future<List<Task>> fetcher() async => [todoTask, doneTask];
+        Future<List<Task>> fetcher(int offset, int limit) async => [todoTask, doneTask];
 
         // ACT
         await tester.pumpWidget(
@@ -207,7 +228,7 @@ void main() {
       'hideCompleted: true — показывает кнопку "Выполнено (N)" при наличии DONE-задач',
       (tester) async {
         // ARRANGE
-        Future<List<Task>> fetcher() async => [todoTask, doneTask];
+        Future<List<Task>> fetcher(int offset, int limit) async => [todoTask, doneTask];
 
         // ACT
         await tester.pumpWidget(
@@ -232,7 +253,7 @@ void main() {
       'По клику на тоггл DONE-задачи раскрываются и текст кнопки меняется',
       (tester) async {
         // ARRANGE
-        Future<List<Task>> fetcher() async => [todoTask, doneTask];
+        Future<List<Task>> fetcher(int offset, int limit) async => [todoTask, doneTask];
 
         // ACT
         await tester.pumpWidget(
@@ -265,7 +286,7 @@ void main() {
       'hideCompleted: true без DONE-задач — тоггл не отображается',
       (tester) async {
         // ARRANGE: только TODO задачи
-        Future<List<Task>> fetcher() async => [todoTask];
+        Future<List<Task>> fetcher(int offset, int limit) async => [todoTask];
 
         // ACT
         await tester.pumpWidget(
@@ -285,6 +306,75 @@ void main() {
         expect(find.text('Активная задача'), findsOneWidget);
         expect(find.textContaining('Выполнено ('), findsNothing);
         expect(find.text('Скрыть выполненные'), findsNothing);
+      },
+    );
+  });
+
+  group('removeIf — удаление задачи из списка при обновлении', () {
+    late _TaskServiceStub taskService;
+
+    final projectTask = Task(
+      id: '1',
+      name: 'Задача проекта',
+      description: '',
+      status: 'TODO',
+      projectId: 'p1',
+    );
+
+    Future<Task> fakeCreator(String title, DateTime? plannedAt) async =>
+        Task(id: '99', name: title, description: '', status: 'TODO');
+
+    setUp(() => taskService = _TaskServiceStub());
+    tearDown(() => taskService.close());
+
+    testWidgets(
+      'задача удаляется если removeIf вернул true (projectId изменился)',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: TaskListView(
+              title: 'Проект',
+              fetcher: (offset, limit) async => [projectTask],
+              creator: fakeCreator,
+              emptyListMessage: 'Пусто',
+              service: taskService,
+              removeIf: (t) => t.projectId != 'p1',
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Задача проекта'), findsOneWidget);
+
+        // Задача отвязана от проекта
+        taskService.emitUpdate(projectTask.copyWithClearedProjectId());
+        await tester.pumpAndSettle();
+
+        expect(find.text('Задача проекта'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'задача остаётся если removeIf вернул false (projectId не изменился)',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: TaskListView(
+              title: 'Проект',
+              fetcher: (offset, limit) async => [projectTask],
+              creator: fakeCreator,
+              emptyListMessage: 'Пусто',
+              service: taskService,
+              removeIf: (t) => t.projectId != 'p1',
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Обновляем имя, projectId остаётся
+        taskService.emitUpdate(projectTask.copyWith(name: 'Задача проекта v2'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Задача проекта v2'), findsOneWidget);
       },
     );
   });

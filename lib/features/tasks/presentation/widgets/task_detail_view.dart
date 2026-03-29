@@ -25,6 +25,7 @@ class TaskDetailView extends StatefulWidget {
   final Future<void> Function(Task updatedTask)? onTaskUpdated;
   final TaskService? taskService;
   final AiReviewService? aiReviewService;
+  final bool showAiReview;
 
   const TaskDetailView({
     super.key,
@@ -35,6 +36,7 @@ class TaskDetailView extends StatefulWidget {
     this.onTaskUpdated,
     this.taskService,
     this.aiReviewService,
+    this.showAiReview = true,
   });
 
   @override
@@ -237,6 +239,46 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     }
   }
 
+  Future<void> _clearPlannedDate() async {
+    _debounceTimer?.cancel();
+    final previous = _task;
+    final cleared = _task.copyWithClearedPlannedAt();
+    setState(() => _task = cleared);
+    try {
+      final updated = await _taskService.patchTaskFields(_task.id, {'planned_at': null});
+      logger.i('Очистка даты: planned_at в ответе = ${updated.plannedAt}');
+      if (mounted) setState(() => _task = cleared);
+    } catch (e) {
+      logger.e('Ошибка очистки даты: $e');
+      if (mounted) {
+        setState(() => _task = previous);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось сохранить')),
+        );
+      }
+    }
+  }
+
+  Future<void> _clearProject() async {
+    _debounceTimer?.cancel();
+    final previous = _task;
+    final cleared = _task.copyWithClearedProjectId();
+    setState(() => _task = cleared);
+    try {
+      final updated = await _taskService.patchTaskFields(_task.id, {'project_id': null});
+      logger.i('Очистка проекта: project_id в ответе = ${updated.projectId}');
+      if (mounted) setState(() => _task = cleared);
+    } catch (e) {
+      logger.e('Ошибка очистки проекта: $e');
+      if (mounted) {
+        setState(() => _task = previous);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось сохранить')),
+        );
+      }
+    }
+  }
+
   Future<void> _deleteTask() async {
     if (widget.task == null) return;
     try {
@@ -359,12 +401,14 @@ class _TaskDetailViewState extends State<TaskDetailView> {
 
           _FieldRow(
             label: 'Проект',
+            onClear: _task.projectId != null ? _clearProject : null,
             child: widget.projects.isEmpty
                 ? Text('—', style: AppTextStyles.bodyText.copyWith(color: AppColors.textPrimary))
                 : DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _task.projectId,
                       isDense: true,
+                      isExpanded: true,
                       style: AppTextStyles.bodyText.copyWith(color: AppColors.textPrimary),
                       items: widget.projects.map((p) {
                         return DropdownMenuItem(
@@ -379,7 +423,13 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            Text(p.name, style: AppTextStyles.bodyText.copyWith(color: AppColors.textPrimary)),
+                            Expanded(
+                              child: Text(
+                                p.name,
+                                style: AppTextStyles.bodyText.copyWith(color: AppColors.textPrimary),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ]),
                         );
                       }).toList(),
@@ -390,6 +440,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
 
           _FieldRow(
             label: 'Дата',
+            onClear: _task.plannedAt != null ? _clearPlannedDate : null,
             child: GestureDetector(
               onTap: _changePlannedDate,
               child: MouseRegion(
@@ -453,17 +504,19 @@ class _TaskDetailViewState extends State<TaskDetailView> {
           const SizedBox(height: 18),
 
           // ── Секция: AI Review ──
-          const SizedBox(height: 18),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(child: _SectionLabel(label: 'AI Review')),
-              if (_aiState == _AiReviewState.hasReview)
-                _AiButton(label: 'Обновить', onPressed: _startReview),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _buildAiSection(),
+          if (widget.showAiReview) ...[
+            const SizedBox(height: 18),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(child: _SectionLabel(label: 'AI Review')),
+                if (_aiState == _AiReviewState.hasReview)
+                  _AiButton(label: 'Обновить', onPressed: _startReview),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _buildAiSection(),
+          ],
 
         ],
       ),
@@ -590,7 +643,8 @@ class _SectionLabel extends StatelessWidget {
 class _FieldRow extends StatelessWidget {
   final String label;
   final Widget child;
-  const _FieldRow({required this.label, required this.child});
+  final VoidCallback? onClear;
+  const _FieldRow({required this.label, required this.child, this.onClear});
 
   @override
   Widget build(BuildContext context) {
@@ -605,6 +659,16 @@ class _FieldRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(child: child),
+          if (onClear != null)
+            IconButton(
+              icon: const Icon(Icons.close, size: 14),
+              onPressed: onClear,
+              tooltip: 'Очистить',
+              color: AppColors.textMuted,
+              hoverColor: AppColors.textSecondary.withValues(alpha: 0.1),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+            ),
         ],
       ),
     );

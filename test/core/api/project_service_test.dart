@@ -50,7 +50,7 @@ void main() {
         expect(result, isA<List<Project>>());
         expect(result.length, 2);
         expect(result.first.name, 'Project 1');
-        verify(mockDio.get('/')).called(1);
+        verify(mockDio.get('/?offset=0&limit=50')).called(1);
       });
 
       test('should throw an exception on network error', () async {
@@ -70,7 +70,7 @@ void main() {
             ),
           ),
         );
-        verify(mockDio.get('/')).called(1);
+        verify(mockDio.get('/?offset=0&limit=50')).called(1);
       });
     });
 
