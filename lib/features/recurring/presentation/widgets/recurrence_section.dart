@@ -146,9 +146,8 @@ class _RecurrenceSectionState extends State<RecurrenceSection> {
 
   Widget _buildEmpty() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _SectionLabel(label: 'Повторение'),
+        Expanded(child: _SectionLabel(label: 'Повторение')),
         _SmallAiButton(
           label: '+ Добавить',
           onPressed: _openForm,
@@ -163,9 +162,8 @@ class _RecurrenceSectionState extends State<RecurrenceSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _SectionLabel(label: 'Повторение'),
+            Expanded(child: _SectionLabel(label: 'Повторение')),
             _SmallAiButton(
               label: 'Изменить',
               onPressed: () => _openForm(existing: r),

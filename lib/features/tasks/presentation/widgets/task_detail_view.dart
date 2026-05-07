@@ -14,6 +14,8 @@ import 'package:kabachok_lasalsa_front/features/ai_review/data/models/ai_review.
 import 'package:kabachok_lasalsa_front/features/ai_review/presentation/widgets/ai_review_card.dart';
 import 'package:kabachok_lasalsa_front/features/ai_review/presentation/widgets/ai_review_placeholder.dart';
 import 'package:kabachok_lasalsa_front/features/ai_review/presentation/screens/ai_review_history_modal.dart';
+import 'package:kabachok_lasalsa_front/core/api/recurring_task_service.dart';
+import 'package:kabachok_lasalsa_front/features/recurring/presentation/widgets/recurrence_section.dart';
 
 enum _AiReviewState { loading, hasReview, empty, running }
 
@@ -25,6 +27,7 @@ class TaskDetailView extends StatefulWidget {
   final Future<void> Function(Task updatedTask)? onTaskUpdated;
   final TaskService? taskService;
   final AiReviewService? aiReviewService;
+  final RecurringTaskService? recurringTaskService;
   final bool showAiReview;
 
   const TaskDetailView({
@@ -36,6 +39,7 @@ class TaskDetailView extends StatefulWidget {
     this.onTaskUpdated,
     this.taskService,
     this.aiReviewService,
+    this.recurringTaskService,
     this.showAiReview = true,
   });
 
@@ -52,6 +56,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   bool _isSaving = false;
   late final TaskService _taskService;
   late final AiReviewService _aiReviewService;
+  late final RecurringTaskService _recurringTaskService;
   _AiReviewState _aiState = _AiReviewState.loading;
   AIReviewRead? _currentReview;
   Timer? _pollingTimer;
@@ -62,6 +67,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     _task = widget.task!;
     _taskService = widget.taskService ?? getIt<TaskService>();
     _aiReviewService = widget.aiReviewService ?? getIt<AiReviewService>();
+    _recurringTaskService = widget.recurringTaskService ?? getIt<RecurringTaskService>();
     _nameController = TextEditingController(text: _task.name);
     _descriptionController = TextEditingController(text: _task.description);
     _subscribeToTaskUpdates();
@@ -499,6 +505,16 @@ class _TaskDetailViewState extends State<TaskDetailView> {
               ),
               maxLines: null,
             ),
+          ),
+
+          const SizedBox(height: 18),
+
+          // ── Секция: Повторение ──
+          RecurrenceSection(
+            taskId: _task.id,
+            taskName: _task.name,
+            taskProjectId: _task.projectId,
+            recurringTaskService: _recurringTaskService,
           ),
 
           const SizedBox(height: 18),

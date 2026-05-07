@@ -14,6 +14,7 @@ import 'package:kabachok_lasalsa_front/core/widgets/basic_detail_view.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/ai_review_service.dart';
+import 'package:kabachok_lasalsa_front/core/api/recurring_task_service.dart';
 import 'package:kabachok_lasalsa_front/injection_container.dart';
 // Импорты экранов
 import 'package:kabachok_lasalsa_front/features/today/presentation/screens/today_screen.dart';
@@ -27,9 +28,10 @@ class HomeShellScreen extends StatefulWidget {
   final ProjectService? projectService;
   final TaskService? taskService;
   final AiReviewService? aiReviewService;
+  final RecurringTaskService? recurringTaskService;
   final FirebaseAuth? auth;
 
-  const HomeShellScreen({super.key, this.projectService, this.taskService, this.aiReviewService, this.auth});
+  const HomeShellScreen({super.key, this.projectService, this.taskService, this.aiReviewService, this.recurringTaskService, this.auth});
 
   @override
   State<HomeShellScreen> createState() => _HomeShellScreenState();
@@ -50,6 +52,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   late final ProjectService _projectService;
   late final TaskService _taskService;
   late final AiReviewService _aiReviewService;
+  late final RecurringTaskService _recurringTaskService;
   StreamSubscription<Project>? _projectSubscription;
   StreamSubscription<String>? _projectDeleteSubscription;
   StreamSubscription<String>? _taskDeleteSubscription;
@@ -60,6 +63,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     _projectService = widget.projectService ?? getIt<ProjectService>();
     _taskService = widget.taskService ?? getIt<TaskService>();
     _aiReviewService = widget.aiReviewService ?? getIt<AiReviewService>();
+    _recurringTaskService = widget.recurringTaskService ?? getIt<RecurringTaskService>();
     _fetchProjects(); // Загружаем при старте приложения
     _projectSubscription = _projectService.projectUpdates.listen(
       _onProjectUpdated,
@@ -292,6 +296,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         projects: _projects,
         taskService: _taskService,
         aiReviewService: _aiReviewService,
+        recurringTaskService: _recurringTaskService,
         onTaskUpdated: _handleTaskUpdate,
         onDelete: () => _onTaskDeleted(_selectedTask!.id),
         onClose: () => setState(() => _selectedTask = null),
