@@ -3,6 +3,7 @@ import 'package:kabachok_lasalsa_front/injection_container.dart' as di;
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/ai_review_service.dart';
+import 'package:kabachok_lasalsa_front/core/api/recurring_task_service.dart';
 
 void main() {
   group('Dependency Injection Container', () {
@@ -16,6 +17,9 @@ void main() {
       }
       if (di.getIt.isRegistered<AiReviewService>()) {
         await di.getIt.unregister<AiReviewService>();
+      }
+      if (di.getIt.isRegistered<RecurringTaskService>()) {
+        await di.getIt.unregister<RecurringTaskService>();
       }
     });
 
