@@ -5,6 +5,7 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/ai_review_service.dart';
+import 'package:kabachok_lasalsa_front/core/api/recurring_task_service.dart';
 import 'package:kabachok_lasalsa_front/core/models/task.dart';
 import 'package:kabachok_lasalsa_front/features/ai_review/data/models/ai_review.dart';
 import 'package:kabachok_lasalsa_front/features/ai_review/presentation/widgets/ai_review_card.dart';
@@ -12,10 +13,11 @@ import 'package:kabachok_lasalsa_front/features/ai_review/presentation/widgets/a
 import 'package:kabachok_lasalsa_front/features/tasks/presentation/widgets/task_detail_view.dart';
 import 'task_detail_view_test.mocks.dart';
 
-@GenerateMocks([TaskService, AiReviewService])
+@GenerateMocks([TaskService, AiReviewService, RecurringTaskService])
 void main() {
   late MockTaskService mockTaskService;
   late MockAiReviewService mockAiReviewService;
+  late MockRecurringTaskService mockRecurringTaskService;
 
   final testTask = Task(
     id: 't1',
@@ -39,11 +41,14 @@ void main() {
   setUp(() {
     mockTaskService = MockTaskService();
     mockAiReviewService = MockAiReviewService();
+    mockRecurringTaskService = MockRecurringTaskService();
 
     when(mockTaskService.taskUpdates).thenAnswer((_) => const Stream.empty());
     when(mockTaskService.taskDeletions).thenAnswer((_) => const Stream.empty());
     when(mockTaskService.getTaskDetails(taskId: anyNamed('taskId')))
         .thenAnswer((_) async => testTask);
+    when(mockRecurringTaskService.getByTaskId(any))
+        .thenAnswer((_) async => null);
   });
 
   Widget buildView({AIReviewRead? review}) {
@@ -56,6 +61,7 @@ void main() {
           task: testTask,
           taskService: mockTaskService,
           aiReviewService: mockAiReviewService,
+          recurringTaskService: mockRecurringTaskService,
         ),
       ),
     );
@@ -74,6 +80,7 @@ void main() {
             task: testTask,
             taskService: mockTaskService,
             aiReviewService: mockAiReviewService,
+            recurringTaskService: mockRecurringTaskService,
           ),
         ),
       ));
@@ -166,6 +173,7 @@ void main() {
             task: testTask,
             taskService: mockTaskService,
             aiReviewService: mockAiReviewService,
+            recurringTaskService: mockRecurringTaskService,
           ),
         ),
       ));

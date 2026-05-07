@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:kabachok_lasalsa_front/core/api/ai_review_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/project_service.dart';
+import 'package:kabachok_lasalsa_front/core/api/recurring_task_service.dart';
 import 'package:kabachok_lasalsa_front/core/api/task_service.dart';
 
 final getIt = GetIt.instance;
@@ -14,6 +15,7 @@ Future<void> init() async {
   getIt.registerLazySingleton(() => TaskService());
   getIt.registerLazySingleton(() => ProjectService());
   getIt.registerLazySingleton(() => AiReviewService());
+  getIt.registerLazySingleton(() => RecurringTaskService());
 
   // В будущем сюда добавишь:
   // sl.registerLazySingleton(() => AuthService());
@@ -40,8 +42,13 @@ Future<void> reset() async {
     await getIt.unregister<AiReviewService>();
   }
 
+  if (getIt.isRegistered<RecurringTaskService>()) {
+    await getIt.unregister<RecurringTaskService>();
+  }
+
   // Пересоздаем сервисы заново
   getIt.registerLazySingleton(() => TaskService());
   getIt.registerLazySingleton(() => ProjectService());
   getIt.registerLazySingleton(() => AiReviewService());
+  getIt.registerLazySingleton(() => RecurringTaskService());
 }

@@ -80,16 +80,28 @@ class _TaskListItemState extends State<TaskListItem> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.task.name,
-                      style: AppTextStyles.taskTitle.copyWith(
-                        color: isDone
-                            ? AppColors.textMuted
-                            : AppColors.textPrimary,
-                        decoration:
-                            isDone ? TextDecoration.lineThrough : null,
-                        decorationColor: AppColors.textMuted,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            widget.task.name,
+                            style: AppTextStyles.taskTitle.copyWith(
+                              color: isDone
+                                  ? AppColors.textMuted
+                                  : AppColors.textPrimary,
+                              decoration:
+                                  isDone ? TextDecoration.lineThrough : null,
+                              decorationColor: AppColors.textMuted,
+                            ),
+                          ),
+                        ),
+                        if (widget.task.recurringTaskId != null) ...[
+                          const SizedBox(width: 5),
+                          const Icon(Icons.repeat, size: 12, color: AppColors.textMuted),
+                        ],
+                      ],
                     ),
                     if (hasMeta) ...[
                       const SizedBox(height: 3),
