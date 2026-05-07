@@ -7,6 +7,7 @@ class Task {
   final DateTime? closedAt;
   final String? projectId;
   final String? parentId;
+  final String? recurringTaskId;
 
   Task({
     required this.id,
@@ -17,6 +18,7 @@ class Task {
     this.closedAt,
     this.projectId,
     this.parentId,
+    this.recurringTaskId,
   });
 
   Task copyWith({
@@ -28,6 +30,7 @@ class Task {
     DateTime? closedAt,
     String? projectId,
     String? parentId,
+    String? recurringTaskId,
   }) {
     return Task(
       id: id ?? this.id,
@@ -38,6 +41,7 @@ class Task {
       closedAt: closedAt ?? this.closedAt,
       projectId: projectId ?? this.projectId,
       parentId: parentId ?? this.parentId,
+      recurringTaskId: recurringTaskId ?? this.recurringTaskId,
     );
   }
 
@@ -77,6 +81,7 @@ class Task {
           : null,
       projectId: json['project_id']?.toString(),
       parentId: json['parent_id']?.toString(),
+      recurringTaskId: json['recurring_task_id']?.toString(),
     );
   }
 

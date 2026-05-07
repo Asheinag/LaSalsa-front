@@ -81,6 +81,29 @@ void main() {
       expect(task.name, '');
     });
 
+    test('should parse recurring_task_id from JSON', () {
+      final json = {
+        'id': 105,
+        'name': 'Recurring Task',
+        'description': '',
+        'status': 'TODO',
+        'recurring_task_id': 7,
+      };
+      final task = Task.fromJson(json);
+      expect(task.recurringTaskId, '7');
+    });
+
+    test('recurring_task_id is null when not in JSON', () {
+      final json = {
+        'id': 106,
+        'name': 'Normal Task',
+        'description': '',
+        'status': 'TODO',
+      };
+      final task = Task.fromJson(json);
+      expect(task.recurringTaskId, isNull);
+    });
+
     test('should ignore extra fields in JSON', () {
       // ARRANGE: В JSON есть лишнее поле "color"
       final json = {
